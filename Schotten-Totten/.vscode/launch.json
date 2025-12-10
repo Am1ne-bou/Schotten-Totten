@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "JeuTest",
+            "request": "launch",
+            "mainClass": "com.schottenTotten.controller.JeuTest",
+            "projectName": "Schotten-Totten_3c1a9b3f"
+        },
+        {
+            "type": "java",
+            "name": "PlateauTest",
+            "request": "launch",
+            "mainClass": "com.schottenTotten.model.PlateauTest",
+            "projectName": "Schotten-Totten_3c1a9b3f"
+        },
+        {
+            "type": "java",
+            "name": "App",
+            "request": "launch",
+            "mainClass": "App",
+            "console": "internalConsole",
+            "projectName": "Schotten-Totten_3c1a9b3f"
+        }
+    ]
+}
