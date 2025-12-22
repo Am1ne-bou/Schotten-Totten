@@ -1,5 +1,9 @@
 package com.schottenTotten.controller;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import com.schottenTotten.ai.IAAleatoire;
 import com.schottenTotten.model.*;
 import com.schottenTotten.view.ConsoleView;
@@ -44,16 +48,25 @@ public class Jeu{
     public int getJoueurCourant() {
         return joueurCourant;
     }
+
+    public  Carte choseCarteToPlay(Joueur joueur) {
+        if (joueur.isAI()) {
+            return IAAleatoire.choisirCarte(joueur);
+        } else {
+            return consoleView.AskCarteFromPlayer(joueur, joueur.getHand().size());
+        }
+    }
+
     
     private void jouerCarte(Joueur joueur){
-        Carte carteAJouer= consoleView.choseCarteToPlay(joueur);
+        Carte carteAJouer= choseCarteToPlay(joueur);
         while(!joueur.getHand().contains(carteAJouer)){
-            carteAJouer= consoleView.choseCarteToPlay(joueur);
+            carteAJouer= choseCarteToPlay(joueur);
         }
-        int borneIndex = consoleView.choseBorneToPlay(joueur);
+        int borneIndex = consoleView.choseBorneToPlay(joueur, 9);
         Borne borne = plateau.getBornes(borneIndex);
         while( borne.isLocked()){
-            borneIndex = consoleView.choseBorneToPlay(joueur);
+            borneIndex = consoleView.choseBorneToPlay(joueur, 9);
             borne = plateau.getBornes(borneIndex);
         }
         borne.addCarte(joueurCourant, carteAJouer);
@@ -62,10 +75,10 @@ public class Jeu{
 
     private void jouerCarteIA(Joueur joueur){
         Carte carteAJouer= IAAleatoire.choisirCarte(joueur);
-        int borneIndex = IAAleatoire.choisirBorne(plateau);
+        int borneIndex = IAAleatoire.choisirBorne(plateau, 9);
         Borne borne = plateau.getBornes(borneIndex);
         while( borne.isLocked()|| (joueurCourant==1 ? borne.getCartesJ1().size()>=3 : borne.getCartesJ2().size()>=3) ){
-            borneIndex = IAAleatoire.choisirBorne(plateau);
+            borneIndex = IAAleatoire.choisirBorne(plateau, 9);
             borne = plateau.getBornes(borneIndex);
         }
         borne.addCarte(joueurCourant, carteAJouer);
@@ -91,7 +104,7 @@ public class Jeu{
         if(deck.getDeckSize()>=nbrCartes){
             joueur.addCarteToHand(deck.piocher(nbrCartes));
         }else{
-            System.out.println("Le deck est vide,/////.");
+            consoleView.afficherDeckVide();
             while (deck.getDeckSize()>0) {
                 joueur.addCarteToHand(deck.piocher(1));
             }
@@ -101,18 +114,131 @@ public class Jeu{
     private Borne borneFulltoTest(){
         for (int i = 0; i < 9; i++) {
             Borne borne = plateau.getBornes(i);
-            if (borne.isFull() && !borne.isLocked()) {
+            if (isFull(borne) && !borne.isLocked()) {
                 return borne;
             }
         }
         return null;
     }
 
+        public int compareCartes(Borne borne) {
+        if (!isFull(borne)) {
+            throw new IllegalStateException("Les deux joueurs doivent avoir joué 3 cartes chacun pour comparer.");
+        }
+
+        int typeJ1 = TypeofHand(borne.getCartesJ1());
+        int typeJ2 = TypeofHand(borne.getCartesJ2());
+
+        if (typeJ1 > typeJ2) {
+            borne.setProprietaire(1);
+            borne.setLocked(true);
+            return 1; // Joueur 1 gagne
+        } else if (typeJ2 > typeJ1) {
+            borne.setProprietaire(2);
+            borne.setLocked(true);
+            return 2; // Joueur 2 gagne
+        } else {
+            int sommeJ1 = sommeMain(borne.getCartesJ1());
+            int sommeJ2 = sommeMain(borne.getCartesJ2());
+            if (sommeJ1 > sommeJ2) {
+                borne.setProprietaire(1);
+                borne.setLocked(true);
+                return 1; // Joueur 1 gagne
+            } else if (sommeJ2 > sommeJ1) {
+                borne.setProprietaire(2);
+                borne.setLocked(true);
+                return 2; // Joueur 2 gagne
+            } else {
+                borne.setProprietaire(borne.getLastPlayer());
+                borne.setLocked(true);
+                return borne.getLastPlayer(); // Égalité
+            }
+        }
+    }
+    public boolean isFull(Borne borne) {
+        return borne.getCartesJ1().size() == 3 && borne.getCartesJ2().size() == 3;
+    }
+
+    public boolean isOwned(Borne borne) {
+        return borne.getProprietaire() != 0;
+    }
+
+
+    public int TypeofHand(List<Carte> cartes) { // 0: somme, 1: suite, 2: couleur, 3: brelan, 4: suite couleur
+        List<Couleur> couleurs = new ArrayList<>();
+        List<Integer> valeurs = new ArrayList<>();
+
+        for (Carte carte : cartes) {
+            int valeur = carte.getValeur();
+            valeurs.add(valeur);
+            couleurs.add(carte.getCouleur());
+        }
+
+        Collections.sort(valeurs);
+
+        boolean isSuite = (valeurs.get(2) - valeurs.get(0) == 2) && (valeurs.get(1) - valeurs.get(0) == 1);
+        boolean isCouleur = (couleurs.get(0).equals(couleurs.get(1))) && (couleurs.get(1).equals(couleurs.get(2)));
+        boolean isBrelan = (valeurs.get(0).equals(valeurs.get(1)) && valeurs.get(1).equals(valeurs.get(2)));
+
+        if (isSuite && isCouleur) {
+            return 4; // suite couleur
+        } else if (isBrelan) {
+            return 3; // brelan
+        } else if (isCouleur) {
+            return 2; // couleur
+        } else if (isSuite) {
+            return 1; // suite
+        } else {
+            return 0; // somme
+        }    
+    }
+
+    private int sommeMain(List<Carte> cartes) {
+        int somme = 0;
+        for (Carte carte : cartes) {
+            somme += carte.getValeur();
+        }
+        return somme;
+    }
+
+
+    
+    private boolean hewon(int joueur,Plateau plateau) {
+        if (plateau.getNombreBornesControlees(joueur) >= 5) {
+            return true;
+        }
+
+        // Vérification des 3 bornes consécutives
+        int suite = 0;
+        for (int i = 0; i < 9; i++) {
+            if (plateau.getBornes(i).getProprietaire() == joueur) {
+                suite++;
+                if (suite >= 3) {
+                    return true;
+                }
+            } else {
+                suite = 0;
+            }
+        }
+        return false;
+    }
+
+    public boolean gameended() {
+        return hewon(1, plateau) || hewon(2, plateau);
+    }
+
+    public int getwinner() {
+        if (hewon(1, plateau)) return 1;
+        if (hewon(2, plateau)) return 2;
+        return 0;
+    }
+
+
     public void Gameloop(){
 
         distribuer1(6);
 
-        consoleView.afficherPlateau(plateau);
+        consoleView.afficherPlateau(plateau, 9);
 
         while(!isGameEnded()){ 
             consoleView.afficherMainJoueur(joueurCourant == 1 ? joueur1 : joueur2);
@@ -134,29 +260,22 @@ public class Jeu{
             Borne borne = borneFulltoTest();
 
             if(borne != null){
-                System.out.println("Une borne est pleine, évaluation des mains...");
-                if(borne.compareCartes() == 1){
-                    System.out.println("Le joueur 1 remporte la borne!");
-                    borne.setProprietaire(1);
-                    borne.setLocked(true);
-                } else {
-                    System.out.println("Le joueur 2 remporte la borne!");
-                    borne.setProprietaire(2);
-                    borne.setLocked(true);
-                }
+                consoleView.afficherBornePleine();
+                int gagnant = compareCartes(borne);
+                consoleView.afficherGagnantBorne(gagnant==1 ? joueur1 : joueur2);
             }
 
-            setGameEnded(plateau.gameended());
+            setGameEnded(gameended());
 
             piocherCarte(joueurCourant == 1 ? joueur1 : joueur2, 1);
 
             changerJoueurCourant();
 
-            consoleView.afficherPlateau(plateau);
+            consoleView.afficherPlateau(plateau, 9);
 
-            System.out.println("----------------------------");
+            consoleView.afficherSeparateur();
         }
-        System.out.println("Le jeu est terminé! Le gagnant est le joueur " + plateau.getwinner());
+        consoleView.afficherFinPartie(getwinner()==1 ? joueur1.getName() : joueur2.getName());
     }
 
 }

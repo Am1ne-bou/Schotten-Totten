@@ -4,12 +4,9 @@ import java.util.Random;
 import com.schottenTotten.model.*;
 
 public class IAAleatoire {
-    public static int choisirBorne(Plateau plateau) {
+    public static int choisirBorne(Plateau plateau,int nbr_bornes) {
         Random rand = new Random();
-        int borneIndex;
-        do {
-            borneIndex = rand.nextInt(9); 
-        } while (plateau.getBornes(borneIndex).isFull()); // Réessayer si la borne est pleine
+        int borneIndex = rand.nextInt(nbr_bornes); 
         return borneIndex;
     }
     public static Carte choisirCarte(Joueur joueur) {

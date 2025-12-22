@@ -55,87 +55,12 @@ public class Borne {
         } else {
             throw new IllegalArgumentException("Numéro de joueur invalide.");
         }
-        lastPlayer = joueur;
+        lastPlayer = joueur;        
     }
 
-    public boolean isFull() {
-        return cartesJ1.size() == 3 && cartesJ2.size() == 3;
-    }
-
-    public int compareCartes() {
-        if (!isFull()) {
-            throw new IllegalStateException("Les deux joueurs doivent avoir joué 3 cartes chacun pour comparer.");
-        }
-
-        int typeJ1 = TypeofHand(cartesJ1);
-        int typeJ2 = TypeofHand(cartesJ2);
-
-        if (typeJ1 > typeJ2) {
-            this.proprietaire = 1;
-            this.locked = true;
-            return 1; // Joueur 1 gagne
-        } else if (typeJ2 > typeJ1) {
-            this.proprietaire = 2;
-            this.locked = true;
-            return 2; // Joueur 2 gagne
-        } else {
-            int sommeJ1 = sommeMain(cartesJ1);
-            int sommeJ2 = sommeMain(cartesJ2);
-            if (sommeJ1 > sommeJ2) {
-                this.proprietaire = 1;
-                this.locked = true;
-                return 1; // Joueur 1 gagne
-            } else if (sommeJ2 > sommeJ1) {
-                this.proprietaire = 2;
-                this.locked = true;
-                return 2; // Joueur 2 gagne
-            } else {
-                this.proprietaire = lastPlayer;
-                this.locked = true;
-                return lastPlayer; // Égalité
-            }
-        }
-    }
-
-    public boolean isOwned() {
-        return proprietaire != 0;
-    }
+    public int getLastPlayer() {
+        return lastPlayer;
+    }   
 
 
-    public int TypeofHand(List<Carte> cartes) { // 0: somme, 1: suite, 2: couleur, 3: brelan, 4: suite couleur
-        List<Couleur> couleurs = new ArrayList<>();
-        List<Integer> valeurs = new ArrayList<>();
-
-        for (Carte carte : cartes) {
-            int valeur = carte.getValeur();
-            valeurs.add(valeur);
-            couleurs.add(carte.getCouleur());
-        }
-
-        Collections.sort(valeurs);
-
-        boolean isSuite = (valeurs.get(2) - valeurs.get(0) == 2) && (valeurs.get(1) - valeurs.get(0) == 1);
-        boolean isCouleur = (couleurs.get(0).equals(couleurs.get(1))) && (couleurs.get(1).equals(couleurs.get(2)));
-        boolean isBrelan = (valeurs.get(0).equals(valeurs.get(1)) && valeurs.get(1).equals(valeurs.get(2)));
-
-        if (isSuite && isCouleur) {
-            return 4; // suite couleur
-        } else if (isBrelan) {
-            return 3; // brelan
-        } else if (isCouleur) {
-            return 2; // couleur
-        } else if (isSuite) {
-            return 1; // suite
-        } else {
-            return 0; // somme
-        }    
-    }
-
-    private int sommeMain(List<Carte> cartes) {
-        int somme = 0;
-        for (Carte carte : cartes) {
-            somme += carte.getValeur();
-        }
-        return somme;
-    }
 }

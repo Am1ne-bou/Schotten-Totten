@@ -17,7 +17,7 @@ public class Plateau {
         return bornes[index];
     }
 
-    private int getNombreBornesControlees(int joueur) {
+    public int getNombreBornesControlees(int joueur) {
         if (joueur != 1 && joueur != 2) {
             throw new IllegalArgumentException("Le joueur doit être 1 ou 2.");
         }
@@ -28,36 +28,6 @@ public class Plateau {
             }
         }
         return count;
-    }
-
-    private boolean hewon(int joueur) {
-        if (getNombreBornesControlees(joueur) >= 5) {
-            return true;
-        }
-
-        // Vérification des 3 bornes consécutives
-        int suite = 0;
-        for (int i = 0; i < 9; i++) {
-            if (bornes[i].proprietaire == joueur) {
-                suite++;
-                if (suite >= 3) {
-                    return true;
-                }
-            } else {
-                suite = 0;
-            }
-        }
-        return false;
-    }
-
-    public boolean gameended() {
-        return hewon(1) || hewon(2);
-    }
-
-    public int getwinner() {
-        if (hewon(1)) return 1;
-        if (hewon(2)) return 2;
-        return 0;
     }
 
 
