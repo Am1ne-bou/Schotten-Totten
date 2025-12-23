@@ -4,6 +4,7 @@ public class VarianteJeu {
     public static final VarianteJeu BASE=new VarianteJeu("Variante de Base",6,false,9,5,3);
     public static final VarianteJeu TACTIQUE=new VarianteJeu("Variante Tactique",6,true,9,5,3);
     public static final VarianteJeu EXPRESS=new VarianteJeu("Variante Express",5,false,5,3,2);
+    public static final VarianteJeu EXPRESS_TACTIQUE=new VarianteJeu("Variante Express Tactique",5,true,5,3,2);
 
     private String nom;
     private int cartesInitiales;

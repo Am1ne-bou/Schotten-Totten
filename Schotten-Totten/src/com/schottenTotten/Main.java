@@ -14,6 +14,7 @@ public class Main {
         switch (choixVariante) {
             case 2: variante=VarianteJeu.TACTIQUE; break;
             case 3: variante=VarianteJeu.EXPRESS; break;
+            case 4: variante=VarianteJeu.EXPRESS_TACTIQUE; break;
             default: variante=VarianteJeu.BASE;
         }
         view.afficherVarianteChoisie(variante.getNom());

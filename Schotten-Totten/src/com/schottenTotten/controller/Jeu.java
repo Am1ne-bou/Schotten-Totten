@@ -245,6 +245,56 @@ public class Jeu {
         view.afficherCarteJouee(joueur.getName(),carte,indexBorne);
     }
 
+    private void jouerCarteTactiqueIA(Joueur joueur) {
+        List<CarteTactique> cartesTactiques=joueur.getCartesTactiques();
+        if (cartesTactiques.isEmpty()) return;
+
+        CarteTactique carte=IAAleatoire.choisirCarteTactique(cartesTactiques);
+        TypeCarteTactique type=carte.getType();
+
+        // Troupes d'élite : configurer et placer sur une borne
+        if (type.isTroupeElite()) {
+            Couleur couleur=IAAleatoire.choisirCouleur();
+            int valeur;
+            switch (type) {
+                case JOKER: valeur=IAAleatoire.choisirValeur(1,9); break;
+                case ESPION: valeur=7; break;
+                case PORTE_BOUCLIER: valeur=IAAleatoire.choisirValeur(1,3); break;
+                default: return;
+            }
+            carte.setCouleurChoisie(couleur);
+            carte.setValeurChoisie(valeur);
+
+            int indexBorne=IAAleatoire.choisirBorne(this);
+            Borne borne=plateau.getBorne(indexBorne);
+            ajouterCarte(borne,joueurCourant,carte);
+            joueur.removeCarteFromHand(carte);
+            joueur.incrementerCartesTactiquesJouees();
+            view.afficherMessage(joueur.getName()+" joue "+carte+" sur la borne "+indexBorne);
+        }
+        // Modes de combat : appliquer sur une borne non revendiquée
+        else if (type.isModeCombat()) {
+            int indexBorne=IAAleatoire.choisirBorneNonRevendiquee(this);
+            Borne borne=plateau.getBorne(indexBorne);
+            if (type==TypeCarteTactique.COLIN_MAILLARD) borne.setColinMaillard(true);
+            else if (type==TypeCarteTactique.COMBAT_DE_BOUE) borne.setCombatDeBoue(true);
+            joueur.removeCarteFromHand(carte);
+            joueur.incrementerCartesTactiquesJouees();
+            if (deckTactique!=null) deckTactique.defausser(carte);
+            view.afficherMessage(joueur.getName()+" joue "+type.getNom()+" sur la borne "+indexBorne);
+        }
+        // Ruses : l'IA passe (trop complexe pour une IA basique)
+        else if (type.isRuse()) {
+            // L'IA basique ne joue pas les ruses, elle joue une carte clan à la place
+            List<Carte> cartesClan=joueur.getCartesClan();
+            if (!cartesClan.isEmpty()) {
+                jouerCarteIA(joueur);
+            } else {
+                view.afficherMessage(joueur.getName()+" passe son tour.");
+            }
+        }
+    }
+
     public void Gameloop() {
         distribuerCartesInitiales();
         view.afficherPlateau(plateau,variante.getNombreBornes());
@@ -257,8 +307,8 @@ public class Jeu {
             Joueur joueurActuel=getJoueurActuel();
             Joueur adversaire=getJoueurAdverse();
 
-            int cartesTactiques=(deckTactique!=null) ? deckTactique.getDeckSize() : -1;
-            view.afficherDeckInfo(deck.getDeckSize(),cartesTactiques);
+            int cartesTactiquesRestantes=(deckTactique!=null) ? deckTactique.getDeckSize() : -1;
+            view.afficherDeckInfo(deck.getDeckSize(),cartesTactiquesRestantes);
             view.afficherMainJoueur(joueurActuel);
 
             if (variante.hasCartesTactiques()) {
@@ -266,17 +316,32 @@ public class Jeu {
             }
 
             // Pioche
-            if (variante.hasCartesTactiques() && !joueurActuel.isAI()) {
-                int choixPioche=view.demanderChoixPioche(!deck.isEmpty(),deckTactique!=null && !deckTactique.isEmpty());
-                piocher(joueurActuel,choixPioche);
+            if (joueurActuel.isAI()) {
+                if (variante.hasCartesTactiques()) {
+                    int choixPioche=IAAleatoire.choisirTypePioche(!deck.isEmpty(),deckTactique!=null && !deckTactique.isEmpty());
+                    piocher(joueurActuel,choixPioche);
+                } else {
+                    piocher(joueurActuel,1);
+                }
             } else {
-                piocher(joueurActuel,1);
+                if (variante.hasCartesTactiques()) {
+                    int choixPioche=view.demanderChoixPioche(!deck.isEmpty(),deckTactique!=null && !deckTactique.isEmpty());
+                    piocher(joueurActuel,choixPioche);
+                } else {
+                    piocher(joueurActuel,1);
+                }
             }
             view.afficherMainJoueur(joueurActuel);
 
             // Jouer une carte
             if (joueurActuel.isAI()) {
-                jouerCarteIA(joueurActuel);
+                boolean peutJouerTactique=gestionTactique!=null && gestionTactique.peutJouerCarteTactique(joueurActuel,adversaire);
+                boolean hasCartesClan=!joueurActuel.getCartesClan().isEmpty();
+                int typeAction=IAAleatoire.choisirTypeCarteAJouer(hasCartesClan,peutJouerTactique);
+
+                if (typeAction==1) jouerCarteIA(joueurActuel);
+                else if (typeAction==2) jouerCarteTactiqueIA(joueurActuel);
+                else view.afficherMessage(joueurActuel.getName()+" passe son tour.");
             } else {
                 boolean peutJouerTactique=gestionTactique!=null && gestionTactique.peutJouerCarteTactique(joueurActuel,adversaire);
                 boolean hasCartesClan=!joueurActuel.getCartesClan().isEmpty();
@@ -300,13 +365,17 @@ public class Jeu {
 
             gameEnded=aGagne(1) || aGagne(2);
 
+
+
+            view.afficherPlateau(plateau,variante.getNombreBornes());
+            view.afficherSeparateur();
+
+            if (!joueurActuel.isAI()) view.attendreTouche("  Appuyez sur Entree pour continuee...");
+
             if (!gameEnded) {
                 if (!joueurActuel.isAI()) view.afficherTransition(getJoueurAdverse().getName());
                 changerJoueurCourant();
             }
-
-            view.afficherPlateau(plateau,variante.getNombreBornes());
-            view.afficherSeparateur();
         }
 
         int winner=aGagne(1) ? 1 : 2;

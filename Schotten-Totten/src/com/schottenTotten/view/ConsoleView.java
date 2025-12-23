@@ -61,7 +61,7 @@ public class ConsoleView {
         if (cartes.isEmpty()) return GRIS+"[     ]"+RESET;
         StringBuilder sb=new StringBuilder();
         for (Carte carte : cartes) sb.append(colorerCarte(carte)).append(" ");
-        return sb.toString().trim();
+        return sb.toString();
     }
 
     private int lireEntier(int min, int max) {
@@ -96,10 +96,11 @@ public class ConsoleView {
         System.out.println(BLANC+BOLD+"  +-----------------------------------+"+RESET);
         System.out.println(BLANC+"  |  "+VERT+"1."+BLANC+" Variante de Base              |"+RESET);
         System.out.println(BLANC+"  |  "+MAGENTA+"2."+BLANC+" Variante Tactique             |"+RESET);
-        System.out.println(BLANC+"  |  "+JAUNE+"3."+BLANC+" Variante Express             |"+RESET);
+        System.out.println(BLANC+"  |  "+JAUNE+"3."+BLANC+" Variante Express              |"+RESET);
+        System.out.println(BLANC+"  |  "+CYAN+"4."+BLANC+" Variante Express Tactique     |"+RESET);
         System.out.println(BLANC+BOLD+"  +-----------------------------------+"+RESET);
-        System.out.print(CYAN+"  > Votre choix (1-3) : "+RESET);
-        return lireEntier(1,3);
+        System.out.print(CYAN+"  > Votre choix (1-4) : "+RESET);
+        return lireEntier(1,4);
     }
 
     public void afficherVarianteChoisie(String nomVariante) {
@@ -270,8 +271,8 @@ public class ConsoleView {
 
     public void afficherCartesComparees(List<Carte> cartesJ1, List<Carte> cartesJ2, int typeJ1, int typeJ2) {
         System.out.println(GRIS+"  Comparaison:"+RESET);
-        System.out.println(BLEU+"    J1: "+RESET+colorerCartes(cartesJ1)+GRIS+" -> "+getNomCombinaison(typeJ1)+RESET);
-        System.out.println(ROUGE+"    J2: "+RESET+colorerCartes(cartesJ2)+GRIS+" -> "+getNomCombinaison(typeJ2)+RESET);
+        System.out.println(BLEU+"    J1: "+RESET+ colorerCartes(cartesJ1)+GRIS+" -> "+getNomCombinaison(typeJ1)+RESET);
+        System.out.println(ROUGE+"    J2: "+RESET+ colorerCartes(cartesJ2)+GRIS+" -> "+getNomCombinaison(typeJ2)+RESET);
     }
 
     private String getNomCombinaison(int type) {
