@@ -3,279 +3,315 @@ package com.schottenTotten.controller;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-
 import com.schottenTotten.ai.IAAleatoire;
 import com.schottenTotten.model.*;
 import com.schottenTotten.view.ConsoleView;
 
-public class Jeu{
+public class Jeu {
     private Plateau plateau;
     private Deck deck;
+    private DeckTactique deckTactique;
     private Joueur joueur1;
     private Joueur joueur2;
-    private int joueurCourant; // 1 ou 2
+    private VarianteJeu variante;
+    private int joueurCourant;
     private boolean gameEnded;
-    private ConsoleView consoleView;
+    private ConsoleView view;
+    private GestionTactique gestionTactique;
 
-    private void changerJoueurCourant() {
-        joueurCourant = (joueurCourant == 1) ? 2 : 1;
-    }
-
-    public Jeu(String nomJoueur1, boolean isAI1, String nomJoueur2, boolean isAI2) {
-        this.plateau = new Plateau();
-        this.deck = new Deck();
+    public Jeu(VarianteJeu variante, String nomJ1, boolean isAI1, String nomJ2, boolean isAI2) {
+        this.variante=variante;
+        this.plateau=new Plateau(variante.getNombreBornes());
+        this.deck=new Deck();
         this.deck.shuffle();
-        this.joueur1 = new Joueur(nomJoueur1, isAI1 );
-        this.joueur2 = new Joueur(nomJoueur2, isAI2);
-        this.joueurCourant = 1;
-        this.gameEnded = false;
-        this.consoleView = new ConsoleView();
-    }
+        this.joueur1=new Joueur(nomJ1,isAI1);
+        this.joueur2=new Joueur(nomJ2,isAI2);
+        this.joueurCourant=1;
+        this.gameEnded=false;
+        this.view=new ConsoleView();
 
-    public Plateau getPlateau() {
-        return plateau;
-    }
-    public Deck getDeck() {
-        return deck;
-    }
-    public Joueur getJoueur1() {
-        return joueur1;
-    }
-
-    public Joueur getJoueur2() {
-        return joueur2;
-    }
-    public int getJoueurCourant() {
-        return joueurCourant;
-    }
-
-    public  Carte choseCarteToPlay(Joueur joueur) {
-        if (joueur.isAI()) {
-            return IAAleatoire.choisirCarte(joueur);
-        } else {
-            return consoleView.AskCarteFromPlayer(joueur, joueur.getHand().size());
+        if (variante.hasCartesTactiques()) {
+            this.deckTactique=new DeckTactique();
+            this.deckTactique.shuffle();
+            this.gestionTactique=new GestionTactique(this,view);
         }
     }
 
-    
-    private void jouerCarte(Joueur joueur){
-        Carte carteAJouer= choseCarteToPlay(joueur);
-        while(!joueur.getHand().contains(carteAJouer)){
-            carteAJouer= choseCarteToPlay(joueur);
-        }
-        int borneIndex = consoleView.choseBorneToPlay(joueur, 9);
-        Borne borne = plateau.getBornes(borneIndex);
-        while( borne.isLocked()){
-            borneIndex = consoleView.choseBorneToPlay(joueur, 9);
-            borne = plateau.getBornes(borneIndex);
-        }
-        borne.addCarte(joueurCourant, carteAJouer);
-        joueur.removeCarteFromHand(carteAJouer);  
+    public Plateau getPlateau() { return plateau; }
+    public Deck getDeck() { return deck; }
+    public DeckTactique getDeckTactique() { return deckTactique; }
+    public Joueur getJoueur1() { return joueur1; }
+    public Joueur getJoueur2() { return joueur2; }
+    public int getJoueurCourant() { return joueurCourant; }
+    public VarianteJeu getVariante() { return variante; }
+
+    // Getter unifié pour récupérer un joueur par numéro
+    public Joueur getJoueur(int num) { return num==1 ? joueur1 : joueur2; }
+    private Joueur getJoueurActuel() { return getJoueur(joueurCourant); }
+    private Joueur getJoueurAdverse() { return getJoueur(joueurCourant==1 ? 2 : 1); }
+
+    public boolean peutAjouterCarte(Borne borne, int joueur) {
+        if (borne.isLocked()) return false;
+        int max=borne.hasCombatDeBoue() ? 4 : 3;
+        return borne.getNbCartes(joueur)<max;
     }
 
-    private void jouerCarteIA(Joueur joueur){
-        Carte carteAJouer= IAAleatoire.choisirCarte(joueur);
-        int borneIndex = IAAleatoire.choisirBorne(plateau, 9);
-        Borne borne = plateau.getBornes(borneIndex);
-        while( borne.isLocked()|| (joueurCourant==1 ? borne.getCartesJ1().size()>=3 : borne.getCartesJ2().size()>=3) ){
-            borneIndex = IAAleatoire.choisirBorne(plateau, 9);
-            borne = plateau.getBornes(borneIndex);
-        }
-        borne.addCarte(joueurCourant, carteAJouer);
-        joueur.removeCarteFromHand(carteAJouer);  
+    public void ajouterCarte(Borne borne, int joueur, Carte carte) {
+        borne.addCarte(joueur,carte);
     }
 
-    private boolean isGameEnded() {
-        return gameEnded;
+    public Carte retirerCarte(Borne borne, int joueur, int index) {
+        return borne.removeCarte(joueur,index);
     }
 
-    private void setGameEnded(boolean gameEnded) {
-        this.gameEnded = gameEnded;
+    private boolean isBorneFull(Borne borne) {
+        int required=borne.hasCombatDeBoue() ? 4 : 3;
+        return borne.getNbCartes(1)>=required && borne.getNbCartes(2)>=required;
     }
 
-    private void distribuer1(int nbrCartes){
-        for (int i = 0; i < nbrCartes; i++) {
-            joueur1.addCarteToHand(deck.piocher(1));
-            joueur2.addCarteToHand(deck.piocher(1));
-        }
-    }
+    private int getTypeCombinaison(List<Carte> cartes) {
+        if (cartes.size()<3) return 0;
 
-    private void piocherCarte(Joueur joueur, int nbrCartes){
-        if(deck.getDeckSize()>=nbrCartes){
-            joueur.addCarteToHand(deck.piocher(nbrCartes));
-        }else{
-            consoleView.afficherDeckVide();
-            while (deck.getDeckSize()>0) {
-                joueur.addCarteToHand(deck.piocher(1));
-            }
-        }
-    }
-
-    private Borne borneFulltoTest(){
-        for (int i = 0; i < 9; i++) {
-            Borne borne = plateau.getBornes(i);
-            if (isFull(borne) && !borne.isLocked()) {
-                return borne;
-            }
-        }
-        return null;
-    }
-
-        public int compareCartes(Borne borne) {
-        if (!isFull(borne)) {
-            throw new IllegalStateException("Les deux joueurs doivent avoir joué 3 cartes chacun pour comparer.");
-        }
-
-        int typeJ1 = TypeofHand(borne.getCartesJ1());
-        int typeJ2 = TypeofHand(borne.getCartesJ2());
-
-        if (typeJ1 > typeJ2) {
-            borne.setProprietaire(1);
-            borne.setLocked(true);
-            return 1; // Joueur 1 gagne
-        } else if (typeJ2 > typeJ1) {
-            borne.setProprietaire(2);
-            borne.setLocked(true);
-            return 2; // Joueur 2 gagne
-        } else {
-            int sommeJ1 = sommeMain(borne.getCartesJ1());
-            int sommeJ2 = sommeMain(borne.getCartesJ2());
-            if (sommeJ1 > sommeJ2) {
-                borne.setProprietaire(1);
-                borne.setLocked(true);
-                return 1; // Joueur 1 gagne
-            } else if (sommeJ2 > sommeJ1) {
-                borne.setProprietaire(2);
-                borne.setLocked(true);
-                return 2; // Joueur 2 gagne
-            } else {
-                borne.setProprietaire(borne.getLastPlayer());
-                borne.setLocked(true);
-                return borne.getLastPlayer(); // Égalité
-            }
-        }
-    }
-    public boolean isFull(Borne borne) {
-        return borne.getCartesJ1().size() == 3 && borne.getCartesJ2().size() == 3;
-    }
-
-    public boolean isOwned(Borne borne) {
-        return borne.getProprietaire() != 0;
-    }
-
-
-    public int TypeofHand(List<Carte> cartes) { // 0: somme, 1: suite, 2: couleur, 3: brelan, 4: suite couleur
-        List<Couleur> couleurs = new ArrayList<>();
-        List<Integer> valeurs = new ArrayList<>();
-
+        List<Integer> valeurs=new ArrayList<>();
+        List<Couleur> couleurs=new ArrayList<>();
         for (Carte carte : cartes) {
-            int valeur = carte.getValeur();
-            valeurs.add(valeur);
+            valeurs.add(carte.getValeur());
             couleurs.add(carte.getCouleur());
         }
-
         Collections.sort(valeurs);
 
-        boolean isSuite = (valeurs.get(2) - valeurs.get(0) == 2) && (valeurs.get(1) - valeurs.get(0) == 1);
-        boolean isCouleur = (couleurs.get(0).equals(couleurs.get(1))) && (couleurs.get(1).equals(couleurs.get(2)));
-        boolean isBrelan = (valeurs.get(0).equals(valeurs.get(1)) && valeurs.get(1).equals(valeurs.get(2)));
+        boolean isSuite=true;
+        for (int i=1; i<valeurs.size(); i++) {
+            if (valeurs.get(i)-valeurs.get(i-1)!=1) { isSuite=false; break; }
+        }
+        boolean isCouleur=couleurs.stream().allMatch(c -> c!=null && c.equals(couleurs.get(0)));
+        boolean isBrelan=valeurs.stream().distinct().count()==1;
 
-        if (isSuite && isCouleur) {
-            return 4; // suite couleur
-        } else if (isBrelan) {
-            return 3; // brelan
-        } else if (isCouleur) {
-            return 2; // couleur
-        } else if (isSuite) {
-            return 1; // suite
-        } else {
-            return 0; // somme
-        }    
+        if (isSuite && isCouleur) return 4;
+        if (isBrelan) return 3;
+        if (isCouleur) return 2;
+        if (isSuite) return 1;
+        return 0;
     }
 
-    private int sommeMain(List<Carte> cartes) {
-        int somme = 0;
-        for (Carte carte : cartes) {
-            somme += carte.getValeur();
-        }
+    private int getSommeCartes(List<Carte> cartes) {
+        int somme=0;
+        for (Carte carte : cartes) somme+=carte.getValeur();
         return somme;
     }
 
+    private int comparerBorne(Borne borne) {
+        List<Carte> cartesJ1=borne.getCartesJ1();
+        List<Carte> cartesJ2=borne.getCartesJ2();
 
-    
-    private boolean hewon(int joueur,Plateau plateau) {
-        if (plateau.getNombreBornesControlees(joueur) >= 5) {
-            return true;
+        // Colin-Maillard : seule la somme compte
+        if (borne.hasColinMaillard()) {
+            int sommeJ1=getSommeCartes(cartesJ1);
+            int sommeJ2=getSommeCartes(cartesJ2);
+            if (sommeJ1>sommeJ2) return 1;
+            if (sommeJ2>sommeJ1) return 2;
+            return borne.getLastPlayer();
         }
 
-        // Vérification des 3 bornes consécutives
-        int suite = 0;
-        for (int i = 0; i < 9; i++) {
-            if (plateau.getBornes(i).getProprietaire() == joueur) {
+        int typeJ1=getTypeCombinaison(cartesJ1);
+        int typeJ2=getTypeCombinaison(cartesJ2);
+        view.afficherCartesComparees(cartesJ1,cartesJ2,typeJ1,typeJ2);
+
+        if (typeJ1>typeJ2) return 1;
+        if (typeJ2>typeJ1) return 2;
+
+        int sommeJ1=getSommeCartes(cartesJ1);
+        int sommeJ2=getSommeCartes(cartesJ2);
+        if (sommeJ1>sommeJ2) return 1;
+        if (sommeJ2>sommeJ1) return 2;
+        return borne.getLastPlayer();
+    }
+
+    private int getNombreBornesControlees(int joueur) {
+        int count=0;
+        for (int i=0; i<variante.getNombreBornes(); i++) {
+            if (plateau.getBorne(i).getProprietaire()==joueur) count++;
+        }
+        return count;
+    }
+
+    private boolean aGagne(int joueur) {
+        if (getNombreBornesControlees(joueur)>=variante.getBornesToWin()) return true;
+        int suite=0;
+        for (int i=0; i<variante.getNombreBornes(); i++) {
+            if (plateau.getBorne(i).getProprietaire()==joueur) {
                 suite++;
-                if (suite >= 3) {
-                    return true;
-                }
+                if (suite>=variante.getSuiteBornes()) return true;
             } else {
-                suite = 0;
+                suite=0;
             }
         }
         return false;
     }
 
-    public boolean gameended() {
-        return hewon(1, plateau) || hewon(2, plateau);
+    private void distribuerCartesInitiales() {
+        for (int i=0; i<variante.getCartesInitiales(); i++) {
+            joueur1.addCarteToHand(deck.piocher(1));
+            joueur2.addCarteToHand(deck.piocher(1));
+        }
     }
 
-    public int getwinner() {
-        if (hewon(1, plateau)) return 1;
-        if (hewon(2, plateau)) return 2;
-        return 0;
+    // Pioche unifiée : type 1=clan, type 2=tactique
+    private void piocher(Joueur joueur, int type) {
+        List<Carte> cartes;
+        if (type==1) {
+            cartes=deck.piocher(1);
+            if (cartes.isEmpty()) { view.afficherDeckVide(); return; }
+        } else {
+            if (deckTactique==null || deckTactique.isEmpty()) return;
+            cartes=deckTactique.piocher(1);
+        }
+        joueur.addCarteToHand(cartes);
     }
 
+    private void changerJoueurCourant() { joueurCourant=(joueurCourant==1) ? 2 : 1; }
 
-    public void Gameloop(){
+    private int trouverBorneAEvaluer() {
+        for (int i=0; i<variante.getNombreBornes(); i++) {
+            Borne borne=plateau.getBorne(i);
+            if (isBorneFull(borne) && !borne.isLocked()) return i;
+        }
+        return -1;
+    }
 
-        distribuer1(6);
+    private void evaluerBorne(int indexBorne) {
+        Borne borne=plateau.getBorne(indexBorne);
+        int gagnant=comparerBorne(borne);
+        borne.setProprietaire(gagnant);
+        borne.setLocked(true);
+        view.afficherGagnantBorne(gagnant,indexBorne);
+    }
 
-        consoleView.afficherPlateau(plateau, 9);
+    private void jouerCarteClan(Joueur joueur) {
+        List<Carte> cartesClan=joueur.getCartesClan();
+        if (cartesClan.isEmpty()) {
+            view.afficherMessage("Aucune carte clan disponible!");
+            return;
+        }
 
-        while(!isGameEnded()){ 
-            consoleView.afficherMainJoueur(joueurCourant == 1 ? joueur1 : joueur2);
+        Carte carte=view.AskCarteFromPlayer(joueur,joueur.getHandSize());
+        while (carte instanceof CarteTactique) {
+            view.afficherMessage("Choisissez une carte CLAN, pas tactique.");
+            carte=view.AskCarteFromPlayer(joueur,joueur.getHandSize());
+        }
 
-            if(joueurCourant == 1){
-                if(joueur1.isAI()){
-                    jouerCarteIA(joueur1);
-                } else {
-                    jouerCarte(joueur1);
-                }
-            } else {
-                if(joueur2.isAI()){
-                    jouerCarteIA(joueur2);
-                } else {
-                    jouerCarte(joueur2);
-                }
-            }   
+        int indexBorne=view.choseBorneToPlay(joueur,variante.getNombreBornes());
+        Borne borne=plateau.getBorne(indexBorne);
+        while (!peutAjouterCarte(borne,joueurCourant)) {
+            view.afficherMessage("Borne invalide. Réessayez.");
+            indexBorne=view.choseBorneToPlay(joueur,variante.getNombreBornes());
+            borne=plateau.getBorne(indexBorne);
+        }
 
-            Borne borne = borneFulltoTest();
+        ajouterCarte(borne,joueurCourant,carte);
+        joueur.removeCarteFromHand(carte);
+        view.afficherCarteJouee(joueur.getName(),carte,indexBorne);
+    }
 
-            if(borne != null){
-                consoleView.afficherBornePleine();
-                int gagnant = compareCartes(borne);
-                consoleView.afficherGagnantBorne(gagnant==1 ? joueur1 : joueur2);
+    private void jouerCarteTactique(Joueur joueur) {
+        if (gestionTactique==null) return;
+
+        List<CarteTactique> cartesTactiques=joueur.getCartesTactiques();
+        view.afficherCartesTactiques(cartesTactiques);
+
+        int indexCarte=view.demanderIndex("Choisissez une carte tactique",cartesTactiques.size());
+        CarteTactique carte=cartesTactiques.get(indexCarte);
+
+        boolean succes=gestionTactique.executerCarteTactique(carte,joueur,joueurCourant);
+        if (succes) {
+            joueur.removeCarteFromHand(carte);
+            joueur.incrementerCartesTactiquesJouees();
+        }
+    }
+
+    private void jouerCarteIA(Joueur joueur) {
+        List<Carte> cartesClan=joueur.getCartesClan();
+        if (cartesClan.isEmpty()) {
+            view.afficherMessage(joueur.getName()+" passe son tour.");
+            return;
+        }
+
+        Carte carte=IAAleatoire.choisirCarte(joueur,cartesClan);
+        int indexBorne=IAAleatoire.choisirBorne(this);
+        Borne borne=plateau.getBorne(indexBorne);
+
+        ajouterCarte(borne,joueurCourant,carte);
+        joueur.removeCarteFromHand(carte);
+        view.afficherCarteJouee(joueur.getName(),carte,indexBorne);
+    }
+
+    public void Gameloop() {
+        distribuerCartesInitiales();
+        view.afficherPlateau(plateau,variante.getNombreBornes());
+
+        if (variante.hasCartesTactiques()) {
+            view.afficherMessage("=== MODE TACTIQUE ACTIVÉ ===");
+        }
+
+        while (!gameEnded) {
+            Joueur joueurActuel=getJoueurActuel();
+            Joueur adversaire=getJoueurAdverse();
+
+            int cartesTactiques=(deckTactique!=null) ? deckTactique.getDeckSize() : -1;
+            view.afficherDeckInfo(deck.getDeckSize(),cartesTactiques);
+            view.afficherMainJoueur(joueurActuel);
+
+            if (variante.hasCartesTactiques()) {
+                view.afficherInfoTactique(joueur1.getCartesTactiquesJouees(),joueur2.getCartesTactiquesJouees());
             }
 
-            setGameEnded(gameended());
+            // Pioche
+            if (variante.hasCartesTactiques() && !joueurActuel.isAI()) {
+                int choixPioche=view.demanderChoixPioche(!deck.isEmpty(),deckTactique!=null && !deckTactique.isEmpty());
+                piocher(joueurActuel,choixPioche);
+            } else {
+                piocher(joueurActuel,1);
+            }
+            view.afficherMainJoueur(joueurActuel);
 
-            piocherCarte(joueurCourant == 1 ? joueur1 : joueur2, 1);
+            // Jouer une carte
+            if (joueurActuel.isAI()) {
+                jouerCarteIA(joueurActuel);
+            } else {
+                boolean peutJouerTactique=gestionTactique!=null && gestionTactique.peutJouerCarteTactique(joueurActuel,adversaire);
+                boolean hasCartesClan=!joueurActuel.getCartesClan().isEmpty();
+                boolean hasCartesTact=joueurActuel.hasCarteTactique();
 
-            changerJoueurCourant();
+                if (variante.hasCartesTactiques() && (peutJouerTactique || hasCartesTact)) {
+                    int typeAction=view.demanderTypeCarteAJouer(hasCartesClan,peutJouerTactique);
+                    if (typeAction==1) jouerCarteClan(joueurActuel);
+                    else if (typeAction==2) jouerCarteTactique(joueurActuel);
+                } else {
+                    jouerCarteClan(joueurActuel);
+                }
+            }
 
-            consoleView.afficherPlateau(plateau, 9);
+            // Évaluer les bornes complètes
+            int indexBorne=trouverBorneAEvaluer();
+            while (indexBorne!=-1) {
+                evaluerBorne(indexBorne);
+                indexBorne=trouverBorneAEvaluer();
+            }
 
-            consoleView.afficherSeparateur();
+            gameEnded=aGagne(1) || aGagne(2);
+
+            if (!gameEnded) {
+                if (!joueurActuel.isAI()) view.afficherTransition(getJoueurAdverse().getName());
+                changerJoueurCourant();
+            }
+
+            view.afficherPlateau(plateau,variante.getNombreBornes());
+            view.afficherSeparateur();
         }
-        consoleView.afficherFinPartie(getwinner()==1 ? joueur1.getName() : joueur2.getName());
-    }
 
+        int winner=aGagne(1) ? 1 : 2;
+        String nomGagnant=(winner==1) ? joueur1.getName() : joueur2.getName();
+        view.afficherScoreFinal(getNombreBornesControlees(1),getNombreBornesControlees(2),joueur1.getName(),joueur2.getName());
+        view.afficherFinPartie(winner,nomGagnant);
+    }
 }

@@ -3,64 +3,53 @@ package com.schottenTotten.model;
 import java.util.*;
 
 public class Borne {
-
-    public List<Carte> cartesJ1;
-    public List<Carte> cartesJ2;
-    public boolean locked;
-    public int lastPlayer;   // 0 = aucun, 1 = joueur 1, 2 = joueur 2
-    public int proprietaire; // 0 = aucun, 1 = joueur 1, 2 = joueur 2
+    private List<Carte> cartesJ1;
+    private List<Carte> cartesJ2;
+    private boolean locked;
+    private int lastPlayer;
+    private int proprietaire;
+    private boolean colinMaillard;
+    private boolean combatDeBoue;
 
     public Borne() {
-        this.cartesJ1 = new ArrayList<>(3);
-        this.cartesJ2 = new ArrayList<>(3);
-        this.locked = false;
-        this.lastPlayer = 0;
-        this.proprietaire = 0;
+        this.cartesJ1=new ArrayList<>();
+        this.cartesJ2=new ArrayList<>();
+        this.locked=false;
+        this.lastPlayer=0;
+        this.proprietaire=0;
+        this.colinMaillard=false;
+        this.combatDeBoue=false;
     }
 
-    public List<Carte> getCartesJ1() {
-        return cartesJ1;
+    // Getter unifié pour les cartes d'un joueur
+    public List<Carte> getCartes(int joueur) {
+        if (joueur==1) return cartesJ1;
+        if (joueur==2) return cartesJ2;
+        throw new IllegalArgumentException("Joueur doit être 1 ou 2");
     }
 
-    public List<Carte> getCartesJ2() {
-        return cartesJ2;
-    }
-    public boolean isLocked() {
-        return locked;
-    }
-    public void setLocked(boolean locked) {
-        this.locked = locked;
-    }
+    public List<Carte> getCartesJ1() { return cartesJ1; }
+    public List<Carte> getCartesJ2() { return cartesJ2; }
+    public int getNbCartes(int joueur) { return getCartes(joueur).size(); }
+    public boolean isLocked() { return locked; }
+    public int getProprietaire() { return proprietaire; }
+    public int getLastPlayer() { return lastPlayer; }
+    public boolean hasColinMaillard() { return colinMaillard; }
+    public boolean hasCombatDeBoue() { return combatDeBoue; }
 
-    public int getProprietaire() {
-        return proprietaire;
-    }
-    public void setProprietaire(int proprietaire) {
-        this.proprietaire = proprietaire;
-    }
+    public void setLocked(boolean locked) { this.locked=locked; }
+    public void setProprietaire(int proprietaire) { this.proprietaire=proprietaire; }
+    public void setLastPlayer(int lastPlayer) { this.lastPlayer=lastPlayer; }
+    public void setColinMaillard(boolean colinMaillard) { this.colinMaillard=colinMaillard; }
+    public void setCombatDeBoue(boolean combatDeBoue) { this.combatDeBoue=combatDeBoue; }
 
+    // Méthodes unifiées pour ajouter/retirer des cartes
     public void addCarte(int joueur, Carte carte) {
-        if (joueur == 1) {
-            if (cartesJ1.size() < 3) {
-                cartesJ1.add(carte);
-            } else {
-                throw new IllegalStateException("Le joueur 1 ne peut pas ajouter plus de cartes à cette borne.");
-            }
-        } else if (joueur == 2) {
-            if (cartesJ2.size() < 3) {
-                cartesJ2.add(carte);
-            } else {
-                throw new IllegalStateException("Le joueur 2 ne peut pas ajouter plus de cartes à cette borne.");
-            }
-        } else {
-            throw new IllegalArgumentException("Numéro de joueur invalide.");
-        }
-        lastPlayer = joueur;        
+        getCartes(joueur).add(carte);
+        lastPlayer=joueur;
     }
 
-    public int getLastPlayer() {
-        return lastPlayer;
-    }   
-
-
+    public Carte removeCarte(int joueur, int index) {
+        return getCartes(joueur).remove(index);
+    }
 }
