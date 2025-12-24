@@ -8,33 +8,42 @@ public class Deck {
     protected List<Carte> cartes;
 
     public Deck() {
-        this.cartes=new ArrayList<>();
+        this.cartes = new ArrayList<>();
         initialiserDeck();
     }
 
     protected Deck(boolean initialiser) {
-        this.cartes=new ArrayList<>();
+        this.cartes = new ArrayList<>();
         if (initialiser) initialiserDeck();
     }
 
     protected void initialiserDeck() {
         for (Couleur couleur : Couleur.values()) {
-            for (int valeur=1; valeur<=9; valeur++) {
-                cartes.add(new Carte(couleur,valeur));
+            for (int valeur = 1; valeur <= 9; valeur++) {
+                cartes.add(new Carte(couleur, valeur));
             }
         }
     }
 
-    public void shuffle() { Collections.shuffle(cartes); }
+    public void shuffle() {
+        Collections.shuffle(cartes);
+    }
 
     public List<Carte> piocher(int nbrCartes) {
         if (cartes.isEmpty()) return new ArrayList<>();
-        int nbAPiocher=Math.min(nbrCartes,cartes.size());
-        List<Carte> cartesPiochees=new ArrayList<>(cartes.subList(0,nbAPiocher));
-        cartes.subList(0,nbAPiocher).clear();
+        int nbAPiocher = Math.min(nbrCartes, cartes.size());
+        List<Carte> cartesPiochees = new ArrayList<>();
+        for (int i = 0; i < nbAPiocher; i++) {
+            cartesPiochees.add(cartes.remove(i));
+        }
         return cartesPiochees;
     }
 
-    public int getDeckSize() { return cartes.size(); }
-    public boolean isEmpty() { return cartes.isEmpty(); }
+    public int getDeckSize() {
+        return cartes.size();
+    }
+
+    public boolean isEmpty() {
+        return cartes.isEmpty();
+    }
 }

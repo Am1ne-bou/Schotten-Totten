@@ -6,12 +6,12 @@ public class VarianteJeu {
     public static final VarianteJeu EXPRESS=new VarianteJeu("Variante Express",5,false,5,3,2);
     public static final VarianteJeu EXPRESS_TACTIQUE=new VarianteJeu("Variante Express Tactique",5,true,5,3,2);
 
-    private String nom;
-    private int cartesInitiales;
-    private boolean cartesTactiques;
-    private int nombreBornes;
-    private int bornesToWin;
-    private int suiteBornes;
+    private final String nom;
+    private final int cartesInitiales;
+    private final boolean cartesTactiques;
+    private final int nombreBornes;
+    private final int bornesToWin;
+    private final int suiteBornes;
 
     VarianteJeu(String nom, int cartesInitiales, boolean cartesTactiques, int nombreBornes, int bornesToWin, int suiteBornes) {
         this.nom=nom;

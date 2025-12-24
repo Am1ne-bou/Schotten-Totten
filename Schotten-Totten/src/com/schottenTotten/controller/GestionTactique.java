@@ -1,6 +1,7 @@
 package com.schottenTotten.controller;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import com.schottenTotten.model.*;
 import com.schottenTotten.view.ConsoleView;
@@ -159,7 +160,7 @@ public class GestionTactique {
             deckTactique.defausser((CarteTactique) defaussee);
         }
 
-        for (Carte c : piochees) joueur.addCarteToHand(c);
+        for (Carte c : piochees) joueur.addCartesToHand(Collections.singletonList(c));
         view.afficherMessage("Cartes ajoutées à votre main.");
         return true;
     }

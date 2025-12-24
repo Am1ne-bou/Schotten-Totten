@@ -10,6 +10,11 @@ public enum Couleur {
 
     private final String abreviation;
 
-    Couleur(String abreviation) { this.abreviation=abreviation; }
-    public String getAbreviation() { return abreviation; }
+    Couleur(String abreviation) {
+        this.abreviation = abreviation;
+    }
+
+    public String getAbreviation() {
+        return abreviation;
+    }
 }

@@ -8,15 +8,15 @@ import com.schottenTotten.model.*;
 import com.schottenTotten.view.ConsoleView;
 
 public class Jeu {
-    private Plateau plateau;
-    private Deck deck;
+    private final Plateau plateau;
+    private final Deck deck;
     private DeckTactique deckTactique;
-    private Joueur joueur1;
-    private Joueur joueur2;
-    private VarianteJeu variante;
+    private final Joueur joueur1;
+    private final Joueur joueur2;
+    private final VarianteJeu variante;
     private int joueurCourant;
     private boolean gameEnded;
-    private ConsoleView view;
+    private final ConsoleView view;
     private GestionTactique gestionTactique;
 
     public Jeu(VarianteJeu variante, String nomJ1, boolean isAI1, String nomJ2, boolean isAI2) {
@@ -26,6 +26,24 @@ public class Jeu {
         this.deck.shuffle();
         this.joueur1=new Joueur(nomJ1,isAI1);
         this.joueur2=new Joueur(nomJ2,isAI2);
+        this.joueurCourant=1;
+        this.gameEnded=false;
+        this.view=new ConsoleView();
+
+        if (variante.hasCartesTactiques()) {
+            this.deckTactique=new DeckTactique();
+            this.deckTactique.shuffle();
+            this.gestionTactique=new GestionTactique(this,view);
+        }
+    }
+
+    public Jeu(){
+        this.variante=VarianteJeu.BASE;
+        this.plateau=new Plateau(variante.getNombreBornes());
+        this.deck=new Deck();
+        this.deck.shuffle();
+        this.joueur1=new Joueur("nomJ1",true);
+        this.joueur2=new Joueur("nomJ2",true);
         this.joueurCourant=1;
         this.gameEnded=false;
         this.view=new ConsoleView();
@@ -82,9 +100,11 @@ public class Jeu {
 
         boolean isSuite=true;
         for (int i=1; i<valeurs.size(); i++) {
-            if (valeurs.get(i)-valeurs.get(i-1)!=1) { isSuite=false; break; }
+            if (valeurs.get(i)-valeurs.get(i-1)!=1) {
+                isSuite=false; break;
+            }
         }
-        boolean isCouleur=couleurs.stream().allMatch(c -> c!=null && c.equals(couleurs.get(0)));
+        boolean isCouleur=couleurs.stream().allMatch(c -> c!=null && c.equals(couleurs.getFirst()));
         boolean isBrelan=valeurs.stream().distinct().count()==1;
 
         if (isSuite && isCouleur) return 4;
@@ -151,8 +171,8 @@ public class Jeu {
 
     private void distribuerCartesInitiales() {
         for (int i=0; i<variante.getCartesInitiales(); i++) {
-            joueur1.addCarteToHand(deck.piocher(1));
-            joueur2.addCarteToHand(deck.piocher(1));
+            joueur1.addCartesToHand(deck.piocher(1));
+            joueur2.addCartesToHand(deck.piocher(1));
         }
     }
 
@@ -166,7 +186,7 @@ public class Jeu {
             if (deckTactique==null || deckTactique.isEmpty()) return;
             cartes=deckTactique.piocher(1);
         }
-        joueur.addCarteToHand(cartes);
+        joueur.addCartesToHand(cartes);
     }
 
     private void changerJoueurCourant() { joueurCourant=(joueurCourant==1) ? 2 : 1; }
@@ -250,6 +270,7 @@ public class Jeu {
         if (cartesTactiques.isEmpty()) return;
 
         CarteTactique carte=IAAleatoire.choisirCarteTactique(cartesTactiques);
+        assert carte != null;
         TypeCarteTactique type=carte.getType();
 
         // Troupes d'élite : configurer et placer sur une borne
@@ -295,7 +316,7 @@ public class Jeu {
         }
     }
 
-    public void Gameloop() {
+    public void gameLoop() {
         distribuerCartesInitiales();
         view.afficherPlateau(plateau,variante.getNombreBornes());
 
@@ -334,17 +355,15 @@ public class Jeu {
             view.afficherMainJoueur(joueurActuel);
 
             // Jouer une carte
+            boolean peutJouerTactique=gestionTactique!=null && gestionTactique.peutJouerCarteTactique(joueurActuel,adversaire);
+            boolean hasCartesClan=!joueurActuel.getCartesClan().isEmpty();
             if (joueurActuel.isAI()) {
-                boolean peutJouerTactique=gestionTactique!=null && gestionTactique.peutJouerCarteTactique(joueurActuel,adversaire);
-                boolean hasCartesClan=!joueurActuel.getCartesClan().isEmpty();
                 int typeAction=IAAleatoire.choisirTypeCarteAJouer(hasCartesClan,peutJouerTactique);
 
                 if (typeAction==1) jouerCarteIA(joueurActuel);
                 else if (typeAction==2) jouerCarteTactiqueIA(joueurActuel);
                 else view.afficherMessage(joueurActuel.getName()+" passe son tour.");
             } else {
-                boolean peutJouerTactique=gestionTactique!=null && gestionTactique.peutJouerCarteTactique(joueurActuel,adversaire);
-                boolean hasCartesClan=!joueurActuel.getCartesClan().isEmpty();
                 boolean hasCartesTact=joueurActuel.hasCarteTactique();
 
                 if (variante.hasCartesTactiques() && (peutJouerTactique || hasCartesTact)) {
@@ -365,12 +384,10 @@ public class Jeu {
 
             gameEnded=aGagne(1) || aGagne(2);
 
-
-
             view.afficherPlateau(plateau,variante.getNombreBornes());
             view.afficherSeparateur();
 
-            if (!joueurActuel.isAI()) view.attendreTouche("  Appuyez sur Entree pour continuee...");
+            if (!joueurActuel.isAI()) view.attendreTouche("  Appuyez sur Entrer pour continuer...");
 
             if (!gameEnded) {
                 if (!joueurActuel.isAI()) view.afficherTransition(getJoueurAdverse().getName());
@@ -382,5 +399,44 @@ public class Jeu {
         String nomGagnant=(winner==1) ? joueur1.getName() : joueur2.getName();
         view.afficherScoreFinal(getNombreBornesControlees(1),getNombreBornesControlees(2),joueur1.getName(),joueur2.getName());
         view.afficherFinPartie(winner,nomGagnant);
+
+        rejouer();
+    }
+
+    private void rejouer(){
+
+        if (view.demanderRejouer() == 1) {
+            mainGame();
+        } else {
+            view.afficherMessage("Merci d'avoir jouer");
+        }
+    }
+
+    public void mainGame() {
+        view.afficherTitre();
+
+        int choixVariante=view.afficherMenuVariante();
+        VarianteJeu variante = switch (choixVariante) {
+            case 2 -> VarianteJeu.TACTIQUE;
+            case 3 -> VarianteJeu.EXPRESS;
+            case 4 -> VarianteJeu.EXPRESS_TACTIQUE;
+            default -> VarianteJeu.BASE;
+        };
+
+
+        view.afficherVarianteChoisie(variante.getNom());
+
+        view.afficherConfigJoueur(1);
+        String nomJ1=view.demanderNomJoueur("Joueur 1");
+        boolean isAI1=(view.demanderTypeJoueur()==2);
+
+        view.afficherConfigJoueur(2);
+        String nomJ2=view.demanderNomJoueur("Joueur 2");
+        boolean isAI2=(view.demanderTypeJoueur()==2);
+
+        view.afficherLancementPartie(nomJ1,nomJ2,variante.getNom());
+
+        Jeu jeu=JeuFactory.creerJeu(variante,nomJ1,isAI1,nomJ2,isAI2);
+        jeu.gameLoop();
     }
 }

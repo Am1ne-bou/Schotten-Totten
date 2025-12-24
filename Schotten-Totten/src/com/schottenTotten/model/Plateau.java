@@ -1,7 +1,7 @@
 package com.schottenTotten.model;
 
 public class Plateau {
-    private Borne[] bornes;
+    private final Borne[] bornes;
 
     public Plateau(int nbrBornes) {
         this.bornes=new Borne[nbrBornes];
@@ -17,6 +17,13 @@ public class Plateau {
             throw new IllegalArgumentException("Index de borne invalide: "+index);
         }
         return bornes[index];
+    }
+
+    public int getIndexCombatDeBoue(int nbrBornes){
+        for (int b=0; b<nbrBornes; b++) {
+            if (getBorne(b).hasCombatDeBoue()) return b;
+        }
+        return -1;
     }
 
     public int getNombreBornes() { return bornes.length; }
