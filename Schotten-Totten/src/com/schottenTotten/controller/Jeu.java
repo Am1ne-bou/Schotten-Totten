@@ -14,6 +14,7 @@ import com.schottenTotten.model.decks.DeckClan;
 import com.schottenTotten.model.decks.DeckTactique;
 import com.schottenTotten.model.enums.Couleur;
 import com.schottenTotten.model.enums.TypeCarteTactique;
+import com.schottenTotten.utils.Constants;
 import com.schottenTotten.view.ConsoleView;
 
 public class Jeu {
@@ -27,6 +28,8 @@ public class Jeu {
     private boolean gameEnded;
     private final ConsoleView view;
     private GestionTactique gestionTactique;
+    private int toursPassesConsecutifs;
+    private static final int MAX_TOURS_PASSES = 4;
 
     public Jeu(VarianteJeu variante, Joueur joueur1, Joueur joueur2) {
         this.variante = variante;
@@ -38,6 +41,7 @@ public class Jeu {
         this.joueurCourant = 1;
         this.gameEnded = false;
         this.view = new ConsoleView();
+        this.toursPassesConsecutifs = 0;
 
         if (variante.hasCartesTactiques()) {
             this.deckTactique = new DeckTactique();
@@ -56,6 +60,8 @@ public class Jeu {
         this.joueurCourant = 1;
         this.gameEnded = false;
         this.view = new ConsoleView();
+        this.toursPassesConsecutifs = 0;
+
 
         if (variante.hasCartesTactiques()) {
             this.deckTactique = new DeckTactique();
@@ -95,6 +101,18 @@ public class Jeu {
 
     private Joueur getJoueurAdverse() {
         return getJoueur(joueurCourant == 1 ? 2 : 1);
+    }
+
+    private void incrementerTourPasse() {
+        toursPassesConsecutifs++;
+    }
+
+    private void reinitialiserToursPasses() {
+        toursPassesConsecutifs = 0;
+    }
+
+    private boolean jeuBloqueParToursPasses() {
+        return toursPassesConsecutifs >= MAX_TOURS_PASSES;
     }
 
     public boolean peutAjouterCarte(Borne borne, int joueur) {
@@ -246,6 +264,7 @@ public class Jeu {
         List<CarteClan> cartesClan = joueur.getCartesClan();
         if (cartesClan.isEmpty()) {
             view.afficherMessage("Aucune carte clan disponible!");
+            incrementerTourPasse();
             return;
         }
 
@@ -266,6 +285,7 @@ public class Jeu {
         ajouterCarte(borne, joueurCourant, carte);
         joueur.removeCarteFromHand(carte);
         view.afficherCarteJouee(joueur.getName(), carte, indexBorne);
+        reinitialiserToursPasses();
     }
 
     private void jouerCarteTactique(Joueur joueur) {
@@ -281,6 +301,9 @@ public class Jeu {
         if (succes) {
             joueur.removeCarteFromHand(carte);
             joueur.incrementerCartesTactiquesJouees();
+            reinitialiserToursPasses();
+        } else {
+            incrementerTourPasse();
         }
     }
 
@@ -288,6 +311,7 @@ public class Jeu {
         List<CarteClan> cartesClan = joueur.getCartesClan();
         if (cartesClan.isEmpty()) {
             view.afficherMessage(joueur.getName() + " passe son tour.");
+            incrementerTourPasse();
             return;
         }
 
@@ -298,6 +322,7 @@ public class Jeu {
         ajouterCarte(borne, joueurCourant, carteClan);
         joueur.removeCarteFromHand(carteClan);
         view.afficherCarteJouee(joueur.getName(), carteClan, indexBorne);
+        reinitialiserToursPasses();
     }
 
     private void jouerCarteTactiqueIA(Joueur joueur) {
@@ -309,7 +334,7 @@ public class Jeu {
         TypeCarteTactique type = carte.getType();
 
         // Troupes d'élite : configurer et placer sur une borne
-        if (type.getCategorie()== TypeCarteTactique.TypeCategorie.TROUPE_ELITE) {
+        if (type.getCategorie() == TypeCarteTactique.TypeCategorie.TROUPE_ELITE) {
             Couleur couleur = IAAleatoire.choisirCouleur();
             int valeur;
             switch (type) {
@@ -323,6 +348,7 @@ public class Jeu {
                     valeur = IAAleatoire.choisirValeur(1, 3);
                     break;
                 default:
+                    incrementerTourPasse();
                     return;
             }
             carte.setCouleur(couleur);
@@ -334,9 +360,10 @@ public class Jeu {
             joueur.removeCarteFromHand(carte);
             joueur.incrementerCartesTactiquesJouees();
             view.afficherMessage(joueur.getName() + " joue " + carte + " sur la borne " + indexBorne);
+            reinitialiserToursPasses();
         }
         // Modes de combat : appliquer sur une borne non revendiquée
-        else if (type.getCategorie()== TypeCarteTactique.TypeCategorie.MODE_COMBAT) {
+        else if (type.getCategorie() == TypeCarteTactique.TypeCategorie.MODE_COMBAT) {
             int indexBorne = IAAleatoire.choisirBorneNonRevendiquee(this);
             Borne borne = plateau.getBorne(indexBorne);
             if (type == TypeCarteTactique.COLIN_MAILLARD) borne.setColinMaillard(true);
@@ -344,17 +371,217 @@ public class Jeu {
             joueur.removeCarteFromHand(carte);
             joueur.incrementerCartesTactiquesJouees();
             view.afficherMessage(joueur.getName() + " joue " + type.getNom() + " sur la borne " + indexBorne);
+            reinitialiserToursPasses();
         }
-        // Ruses : l'IA passe (trop complexe pour une IA basique)
-        else if (type.getCategorie()== TypeCarteTactique.TypeCategorie.RUSE) {
-            // L'IA basique ne joue pas les ruses, elle joue une carte clan à la place
-            List<CarteClan> cartesClan = joueur.getCartesClan();
-            if (!cartesClan.isEmpty()) {
-                jouerCarteIA(joueur);
-            } else {
-                view.afficherMessage(joueur.getName() + " passe son tour.");
+        // Ruses : l'IA passe
+//        else if (type.getCategorie() == TypeCarteTactique.TypeCategorie.RUSE) {
+//            List<CarteClan> cartesClan = joueur.getCartesClan();
+//            if (!cartesClan.isEmpty()) {
+//                jouerCarteIA(joueur);
+//            } else {
+//                view.afficherMessage(joueur.getName() + " passe son tour.");
+//            }
+//        }
+
+        else if (type.getCategorie() == TypeCarteTactique.TypeCategorie.RUSE) {
+            boolean carteJouee = false;
+            switch (type) {
+                case CHASSEUR_DE_TETE:
+                    executerChasseurDeTeteAI(joueur);
+                    carteJouee = true;
+                    break;
+                case STRATEGIE:
+                    executerStrategeIA(joueurCourant);
+                    carteJouee = true;
+                    break;
+                case BANSHEE:
+                    executerBansheeIA((joueurCourant % 2) + 1);
+                    carteJouee = true;
+                    break;
+                case TRAITRE:
+                    executerTraitreIA(joueurCourant, (joueurCourant % 2) + 1);
+                    carteJouee = true;
+                    break;
+                default:
+                    List<CarteClan> cartesClan = joueur.getCartesClan();
+                    if (!cartesClan.isEmpty()) {
+                        jouerCarteIA(joueur);
+                    } else {
+                        view.afficherMessage(joueur.getName() + " passe son tour.");
+                        incrementerTourPasse();
+                    }
+                    break;
+            }
+
+            // Retirer la carte et incrémenter si elle a été jouée avec succès
+            if (carteJouee) {
+                joueur.removeCarteFromHand(carte);
+                joueur.incrementerCartesTactiquesJouees();
+                reinitialiserToursPasses();
             }
         }
+    }
+
+    private void executerChasseurDeTeteAI(Joueur joueur) {
+        view.afficherMessage("=== Chasseur de Tête ===");
+        view.afficherMessage("Piochez 3 cartes, gardez-en 2.");
+
+        List<Carte> piochees = new ArrayList<>();
+        Deck deck = getDeckClan();
+        DeckTactique deckTactique = getDeckTactique();
+
+        for (int i = 0; i < 3; i++) {
+            int choix = IAAleatoire.choisirTypePioche(!deck.isEmpty(), deckTactique != null && !deckTactique.isEmpty());
+            if (choix == 1 && !deck.isEmpty()) {
+                piochees.addAll(deck.piocher(1));
+            } else if (choix == 2 && deckTactique != null && !deckTactique.isEmpty()) {
+                piochees.addAll(deckTactique.piocher(1));
+            }
+        }
+
+        if (piochees.isEmpty()) {
+            view.afficherMessage("Aucune carte piochée!");
+            return;
+        }
+
+        view.afficherMessage("Cartes piochées:");
+        for (int i = 0; i < piochees.size(); i++) {
+            view.afficherMessage(i + ": " + piochees.get(i));
+        }
+
+        int indexDefausse = IAAleatoire.choisirIndex(piochees.size());
+        piochees.remove(indexDefausse);
+
+        for (Carte c : piochees) joueur.addCartesToHand(Collections.singletonList(c));
+        view.afficherMessage("Cartes ajoutées à votre main.");
+    }
+
+    private void executerStrategeIA(int joueurNum) {
+        view.afficherMessage("=== Stratège ===");
+        Plateau plateau = getPlateau();
+        int nombreBornes = getVariante().getNombreBornes();
+
+        int borneSource = IAAleatoire.choisirBorne(this);
+        Borne source = plateau.getBorne(borneSource);
+        List<Carte> carteClans = source.getCartesParJoueur(joueurNum);
+
+        if (carteClans.isEmpty()) {
+            view.afficherMessage("Aucune carte sur cette borne!");
+            return;
+        }
+
+        view.afficherMessage("Cartes:");
+        for (int i = 0; i < carteClans.size(); i++) {
+            view.afficherMessage(i + ": " + carteClans.get(i));
+        }
+
+        int indexCarte = IAAleatoire.choisirIndex(carteClans.size());
+        int action = IAAleatoire.choisirValeur(1, 2);
+
+        if (action == 1) {
+            int borneDest = IAAleatoire.choisirIndex(nombreBornes);
+            Borne dest = plateau.getBorne(borneDest);
+
+            if (!peutAjouterCarte(dest, joueurNum)) {
+                view.afficherMessage("Destination invalide!");
+                return;
+            }
+
+            Carte carteClan = retirerCarte(source, joueurNum, indexCarte);
+            ajouterCarte(dest, joueurNum, carteClan);
+            view.afficherMessage("Carte déplacée.");
+        } else {
+            retirerCarte(source, joueurNum, indexCarte);
+            view.afficherMessage("Carte défaussée.");
+        }
+    }
+
+    private List<Integer> getIndicesCartesClan(List<Carte> cartes) {
+        List<Integer> indices = new ArrayList<>();
+        for (int i = 0; i < cartes.size(); i++) {
+            if (!(cartes.get(i).isTactique())) indices.add(i);
+        }
+        return indices;
+    }
+
+    private void executerBansheeIA(int adversaireNum) {
+        view.afficherMessage("=== Banshee ===");
+        Plateau plateau = getPlateau();
+        int nombreBornes = getVariante().getNombreBornes();
+
+        int indexBorne = IAAleatoire.choisirIndex(nombreBornes);
+        Borne borne = plateau.getBorne(indexBorne);
+
+        if (borne.isLocked()) {
+            view.afficherMessage("Borne déjà revendiquée!");
+            return;
+        }
+
+        List<Carte> cartesAdversaire = borne.getCartesParJoueur(adversaireNum);
+        if (cartesAdversaire.isEmpty()) {
+            view.afficherMessage("Aucune carte adverse!");
+            return;
+        }
+
+        List<Integer> indicesValides = getIndicesCartesClan(cartesAdversaire);
+        if (indicesValides.isEmpty()) {
+            view.afficherMessage("Aucune carte clan à défausser!");
+            return;
+        }
+
+        view.afficherMessage("Cartes adverses (clan uniquement):");
+        for (int i = 0; i < indicesValides.size(); i++) {
+            view.afficherMessage(i + ": " + cartesAdversaire.get(indicesValides.get(i)));
+        }
+
+        int choix = IAAleatoire.choisirIndex(indicesValides.size());
+        retirerCarte(borne, adversaireNum, indicesValides.get(choix));
+        view.afficherMessage("Carte défaussée!");
+    }
+
+    private void executerTraitreIA(int joueurNum, int adversaireNum) {
+        view.afficherMessage("=== Traître ===");
+        Plateau plateau = getPlateau();
+        int nombreBornes = getVariante().getNombreBornes();
+
+        int borneSource = IAAleatoire.choisirIndex(nombreBornes);
+        Borne source = plateau.getBorne(borneSource);
+
+        if (source.isLocked()) {
+            view.afficherMessage("Borne déjà revendiquée!");
+            return;
+        }
+
+        List<Carte> cartesAdversaire = source.getCartesParJoueur(adversaireNum);
+        if (cartesAdversaire.isEmpty()) {
+            view.afficherMessage("Aucune carte adverse!");
+            return;
+        }
+
+        List<Integer> indicesValides = getIndicesCartesClan(cartesAdversaire);
+        if (indicesValides.isEmpty()) {
+            view.afficherMessage("Aucune carte clan à voler!");
+            return;
+        }
+
+        view.afficherMessage("Cartes adverses (clan uniquement):");
+        for (int i = 0; i < indicesValides.size(); i++) {
+            view.afficherMessage(i + ": " + cartesAdversaire.get(indicesValides.get(i)));
+        }
+
+        int choix = IAAleatoire.choisirIndex(indicesValides.size());
+        Carte carteClan = retirerCarte(source, adversaireNum, indicesValides.get(choix));
+
+        int borneDest = IAAleatoire.choisirIndex(nombreBornes);
+        Borne dest = plateau.getBorne(borneDest);
+
+        if (!peutAjouterCarte(dest, joueurNum)) {
+            view.afficherMessage("Destination invalide!");
+            return;
+        }
+
+        ajouterCarte(dest, joueurNum, carteClan);
+        view.afficherMessage("Carte volée et placée!");
     }
 
     public void gameLoop() {
@@ -405,7 +632,10 @@ public class Jeu {
 
                 if (typeAction == 1) jouerCarteIA(joueurActuel);
                 else if (typeAction == 2) jouerCarteTactiqueIA(joueurActuel);
-                else view.afficherMessage(joueurActuel.getName() + " passe son tour.");
+                else {
+                    view.afficherMessage(joueurActuel.getName() + " passe son tour.");
+                    incrementerTourPasse();
+                }
             } else {
                 boolean hasCarteTactique = joueurActuel.hasCarteTactique();
 
@@ -418,6 +648,11 @@ public class Jeu {
                 }
             }
 
+            if (jeuBloqueParToursPasses()) {
+                view.afficherMessage("Trop de tours passés consécutifs. Fin de partie.");
+                gameEnded = true;
+            }
+
             // Évaluer les bornes complètes
             int indexBorne = trouverBorneAEvaluer();
             while (indexBorne != -1) {
@@ -425,7 +660,7 @@ public class Jeu {
                 indexBorne = trouverBorneAEvaluer();
             }
 
-            gameEnded = aGagne(1) || aGagne(2);
+            gameEnded = gameEnded || aGagne(1) || aGagne(2);
 
             view.afficherPlateau(plateau, variante.getNombreBornes());
             view.afficherSeparateur();
@@ -438,10 +673,35 @@ public class Jeu {
             }
         }
 
-        int winner = aGagne(1) ? 1 : 2;
-        String nomGagnant = (winner == 1) ? joueur1.getName() : joueur2.getName();
-        view.afficherScoreFinal(getNombreBornesControlees(1), getNombreBornesControlees(2), joueur1.getName(), joueur2.getName());
-        view.afficherFinPartie(winner, nomGagnant);
+        if (jeuBloqueParToursPasses()) {
+            // Compter les bornes contrôlées
+            int bornesJ1 = getNombreBornesControlees(1);
+            int bornesJ2 = getNombreBornesControlees(2);
+
+            int winner;
+            String nomGagnant;
+
+            if (bornesJ1 > bornesJ2) {
+                winner = 1;
+                nomGagnant = joueur1.getName();
+            } else if (bornesJ2 > bornesJ1) {
+                winner = 2;
+                nomGagnant = joueur2.getName();
+            } else {
+                winner = 0;
+                nomGagnant = "Personne n'a gagnee";
+                view.afficherMessage("Égalité!!!!! ");
+            }
+
+            view.afficherScoreFinal(bornesJ1, bornesJ2, joueur1.getName(), joueur2.getName());
+            view.afficherFinPartie(winner, nomGagnant + Constants.CYAN + " GAME ENDED BY PASSING TO MANY ROUNDS !!!!!!");
+        } else {
+            // Victoire normale
+            int winner = aGagne(1) ? 1 : 2;
+            String nomGagnant = (winner == 1) ? joueur1.getName() : joueur2.getName();
+            view.afficherScoreFinal(getNombreBornesControlees(1), getNombreBornesControlees(2), joueur1.getName(), joueur2.getName());
+            view.afficherFinPartie(winner, nomGagnant);
+        }
 
         rejouer();
     }

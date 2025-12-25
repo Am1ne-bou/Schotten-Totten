@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import com.schottenTotten.model.*;
 import com.schottenTotten.model.carte.Carte;
-import com.schottenTotten.model.carte.CarteClan;
 import com.schottenTotten.model.carte.CarteTactique;
 import com.schottenTotten.model.decks.Deck;
 import com.schottenTotten.model.decks.DeckTactique;
@@ -125,7 +124,7 @@ public class GestionTactique {
         int adversaireNum=(joueurNum==1) ? 2 : 1;
         switch (carte.getType()) {
             case CHASSEUR_DE_TETE: return executerChasseurDeTete(joueur);
-            case STRATEGIE: return executerStratege(joueur,joueurNum);
+            case STRATEGIE: return executerStratege(joueurNum);
             case BANSHEE: return executerBanshee(adversaireNum);
             case TRAITRE: return executerTraitre(joueurNum,adversaireNum);
             default: return false;
@@ -160,14 +159,14 @@ public class GestionTactique {
         }
 
         int indexDefausse=view.demanderIndex("Carte à défausser",piochees.size());
-        Carte defaussee=piochees.remove(indexDefausse);
+        piochees.remove(indexDefausse);
 
         for (Carte c : piochees) joueur.addCartesToHand(Collections.singletonList(c));
         view.afficherMessage("Cartes ajoutées à votre main.");
         return true;
     }
 
-    private boolean executerStratege(Joueur joueur, int joueurNum) {
+    private boolean executerStratege( int joueurNum) {
         view.afficherMessage("=== Stratège ===");
         Plateau plateau=jeu.getPlateau();
         int nombreBornes=jeu.getVariante().getNombreBornes();
@@ -209,10 +208,10 @@ public class GestionTactique {
     }
 
     // Récupère les indices des cartes clan (non tactiques) d'un joueur sur une borne
-    private List<Integer> getIndicesCartesClan(List<Carte> carteClans) {
+    private List<Integer> getIndicesCartesClan(List<Carte> cartes) {
         List<Integer> indices=new ArrayList<>();
-        for (int i = 0; i< carteClans.size(); i++) {
-            if (!(carteClans.get(i) instanceof CarteTactique)) indices.add(i);
+        for (int i = 0; i< cartes.size(); i++) {
+            if (!(cartes.get(i).isTactique())) indices.add(i);
         }
         return indices;
     }

@@ -7,6 +7,7 @@ import com.schottenTotten.model.carte.Carte;
 import com.schottenTotten.model.carte.CarteClan;
 import com.schottenTotten.model.carte.CarteTactique;
 import com.schottenTotten.model.enums.Couleur;
+import com.schottenTotten.utils.Constants;
 
 import static com.schottenTotten.utils.Constants.*;
 
@@ -223,7 +224,7 @@ public class ConsoleView {
         List<Carte> main = joueur.getHand();
         for (int i = 0; i < main.size(); i++) {
             Carte carte = main.get(i);
-            String carteFormatee = (carte.getCouleur() != null) ? carte.getCouleur().colorerCarte(carte) : CYAN;
+            String carteFormatee = (carte.getCouleur() != null) ? carte.getCouleur().colorerCarte(carte) :  CYAN + BOLD + "[" + carte.getValeur() + "-" + ((CarteTactique) carte).getType().toString().substring(0, 5) + "]" + RESET;
             System.out.print(GRIS + "[" + i + "]" + RESET + carteFormatee + "  ");
         }
         System.out.println();
@@ -287,7 +288,6 @@ public class ConsoleView {
     }
 
     public void afficherFinPartie(int gagnant, String nomGagnant) {
-        effacerEcran();
         String couleur = (gagnant == 1) ? BLEU : ROUGE;
         System.out.println();
         System.out.println();

@@ -48,7 +48,7 @@ public enum Couleur {
 
     public String colorerCarte(Carte carte) {
         if (carte == null) return Constants.GRIS + "[   ]" + Constants.RESET;
-        if (carte.getCouleur() == null) {
+        if (carte.isTactique()) {
             return Constants.CYAN + Constants.BOLD + "[" + carte.getValeur() + "-" + ((CarteTactique) carte).getType().toString().substring(0, 5) + "]" + Constants.RESET;
         }
         String couleurCode = getCouleurCode(carte.getCouleur());
