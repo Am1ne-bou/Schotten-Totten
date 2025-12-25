@@ -32,7 +32,7 @@ public class IAAleatoire {
 
     // Choisit quel type de pioche (1=clan, 2=tactique)
     public static int choisirTypePioche(boolean clanDispo, boolean tactiqueDispo) {
-        if (clanDispo && tactiqueDispo) return rand.nextInt(10)<3 ? 1 : 2;
+        if (clanDispo && tactiqueDispo) return rand.nextInt(10)<8 ? 1 : 2;
         return clanDispo ? 1 : 2;
     }
 
