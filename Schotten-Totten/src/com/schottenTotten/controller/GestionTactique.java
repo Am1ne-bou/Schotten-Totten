@@ -4,6 +4,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import com.schottenTotten.model.*;
+import com.schottenTotten.model.carte.Carte;
+import com.schottenTotten.model.carte.CarteClan;
+import com.schottenTotten.model.carte.CarteTactique;
+import com.schottenTotten.model.decks.Deck;
+import com.schottenTotten.model.decks.DeckTactique;
+import com.schottenTotten.model.enums.Couleur;
+import com.schottenTotten.model.enums.TypeCarteTactique;
 import com.schottenTotten.view.ConsoleView;
 
 public class GestionTactique {
@@ -34,15 +41,15 @@ public class GestionTactique {
             default:
                 throw new IllegalArgumentException("Ce n'est pas une troupe d'élite");
         }
-        carte.setCouleurChoisie(couleur);
-        carte.setValeurChoisie(valeur);
+        carte.setCouleur(couleur);
+        carte.setValeur(valeur);
     }
 
     public boolean executerCarteTactique(CarteTactique carte, Joueur joueur, int joueurNum) {
         TypeCarteTactique type=carte.getType();
-        if (type.isTroupeElite()) return executerTroupeElite(carte,joueur,joueurNum);
-        if (type.isModeCombat()) return executerModeCombat(carte,joueur);
-        if (type.isRuse()) return executerRuse(carte,joueur,joueurNum);
+        if (type.getCategorie()== TypeCarteTactique.TypeCategorie.TROUPE_ELITE) return executerTroupeElite(carte,joueur,joueurNum);
+        if (type.getCategorie()== TypeCarteTactique.TypeCategorie.MODE_COMBAT) return executerModeCombat(carte,joueur);
+        if (type.getCategorie()== TypeCarteTactique.TypeCategorie.RUSE) return executerRuse(carte,joueur,joueurNum);
         return false;
     }
 
@@ -111,7 +118,6 @@ public class GestionTactique {
         }
 
         view.afficherModeCombatApplique(carte.getType().getNom(),indexBorne);
-        if (jeu.getDeckTactique()!=null) jeu.getDeckTactique().defausser(carte);
         return true;
     }
 
@@ -131,7 +137,7 @@ public class GestionTactique {
         view.afficherMessage("Piochez 3 cartes, gardez-en 2.");
 
         List<Carte> piochees=new ArrayList<>();
-        Deck deck=jeu.getDeck();
+        Deck deck=jeu.getDeckClan();
         DeckTactique deckTactique=jeu.getDeckTactique();
 
         for (int i=0; i<3; i++) {
@@ -156,10 +162,6 @@ public class GestionTactique {
         int indexDefausse=view.demanderIndex("Carte à défausser",piochees.size());
         Carte defaussee=piochees.remove(indexDefausse);
 
-        if (defaussee instanceof CarteTactique && deckTactique!=null) {
-            deckTactique.defausser((CarteTactique) defaussee);
-        }
-
         for (Carte c : piochees) joueur.addCartesToHand(Collections.singletonList(c));
         view.afficherMessage("Cartes ajoutées à votre main.");
         return true;
@@ -172,19 +174,19 @@ public class GestionTactique {
 
         int borneSource=view.demanderIndex("Borne source",nombreBornes);
         Borne source=plateau.getBorne(borneSource);
-        List<Carte> cartes=source.getCartes(joueurNum);
+        List<Carte> carteClans =source.getCartesParJoueur(joueurNum);
 
-        if (cartes.isEmpty()) {
+        if (carteClans.isEmpty()) {
             view.afficherMessage("Aucune carte sur cette borne!");
             return false;
         }
 
         view.afficherMessage("Cartes:");
-        for (int i=0; i<cartes.size(); i++) {
-            view.afficherMessage(i+": "+cartes.get(i));
+        for (int i = 0; i< carteClans.size(); i++) {
+            view.afficherMessage(i+": "+ carteClans.get(i));
         }
 
-        int indexCarte=view.demanderIndex("Carte à déplacer/défausser",cartes.size());
+        int indexCarte=view.demanderIndex("Carte à déplacer/défausser", carteClans.size());
         int action=view.demanderChoixStratege();
 
         if (action==1) {
@@ -196,8 +198,8 @@ public class GestionTactique {
                 return false;
             }
 
-            Carte carte=jeu.retirerCarte(source,joueurNum,indexCarte);
-            jeu.ajouterCarte(dest,joueurNum,carte);
+            Carte carteClan =jeu.retirerCarte(source,joueurNum,indexCarte);
+            jeu.ajouterCarte(dest,joueurNum, carteClan);
             view.afficherMessage("Carte déplacée.");
         } else {
             jeu.retirerCarte(source,joueurNum,indexCarte);
@@ -207,10 +209,10 @@ public class GestionTactique {
     }
 
     // Récupère les indices des cartes clan (non tactiques) d'un joueur sur une borne
-    private List<Integer> getIndicesCartesClan(List<Carte> cartes) {
+    private List<Integer> getIndicesCartesClan(List<Carte> carteClans) {
         List<Integer> indices=new ArrayList<>();
-        for (int i=0; i<cartes.size(); i++) {
-            if (!(cartes.get(i) instanceof CarteTactique)) indices.add(i);
+        for (int i = 0; i< carteClans.size(); i++) {
+            if (!(carteClans.get(i) instanceof CarteTactique)) indices.add(i);
         }
         return indices;
     }
@@ -228,7 +230,7 @@ public class GestionTactique {
             return false;
         }
 
-        List<Carte> cartesAdversaire=borne.getCartes(adversaireNum);
+        List<Carte> cartesAdversaire=borne.getCartesParJoueur(adversaireNum);
         if (cartesAdversaire.isEmpty()) {
             view.afficherMessage("Aucune carte adverse!");
             return false;
@@ -264,7 +266,7 @@ public class GestionTactique {
             return false;
         }
 
-        List<Carte> cartesAdversaire=source.getCartes(adversaireNum);
+        List<Carte> cartesAdversaire=source.getCartesParJoueur(adversaireNum);
         if (cartesAdversaire.isEmpty()) {
             view.afficherMessage("Aucune carte adverse!");
             return false;
@@ -282,7 +284,7 @@ public class GestionTactique {
         }
 
         int choix=view.demanderIndex("Carte à voler",indicesValides.size());
-        Carte carte=jeu.retirerCarte(source,adversaireNum,indicesValides.get(choix));
+        Carte carteClan =jeu.retirerCarte(source,adversaireNum,indicesValides.get(choix));
 
         int borneDest=view.demanderIndex("Borne destination",nombreBornes);
         Borne dest=plateau.getBorne(borneDest);
@@ -292,7 +294,7 @@ public class GestionTactique {
             return false;
         }
 
-        jeu.ajouterCarte(dest,joueurNum,carte);
+        jeu.ajouterCarte(dest,joueurNum, carteClan);
         view.afficherMessage("Carte volée et placée!");
         return true;
     }

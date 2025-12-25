@@ -1,8 +1,10 @@
 package com.schottenTotten.controller;
 
+import com.schottenTotten.model.Joueur;
+
 public class JeuFactory {
-    public static Jeu creerJeu(VarianteJeu variante, String nomJ1, boolean isAI1, String nomJ2, boolean isAI2) {
+    public static Jeu creerJeu(VarianteJeu variante,Joueur joueur1,Joueur joueur2) {
         if (variante==null) throw new IllegalArgumentException("La variante ne peut pas être null");
-        return new Jeu(variante,nomJ1,isAI1,nomJ2,isAI2);
+        return new Jeu(variante,joueur1,joueur2);
     }
 }

@@ -1,5 +1,9 @@
 package com.schottenTotten.model;
 
+import com.schottenTotten.model.carte.Carte;
+import com.schottenTotten.model.carte.CarteClan;
+import com.schottenTotten.model.carte.CarteTactique;
+
 import java.util.*;
 
 public class Joueur {
@@ -35,8 +39,8 @@ public class Joueur {
         return hand.size();
     }
 
-    public void addCartesToHand(List<Carte> cartes) {
-        if (cartes != null && !cartes.isEmpty()) hand.addAll(cartes);
+    public void addCartesToHand(List<Carte> carte) {
+        if (carte != null && !carte.isEmpty()) hand.addAll(carte);
     }
 
     public void removeCarteFromHand(Carte carte) {
@@ -47,20 +51,24 @@ public class Joueur {
         cartesTactiquesJouees++;
     }
 
-    public List<Carte> getCartesClan() {
-        List<Carte> cartesClan = new ArrayList<>();
-        for (Carte carte : hand) {
-            if (!(carte instanceof CarteTactique)) cartesClan.add(carte);
-        }
-        return cartesClan;
-    }
-
     public List<CarteTactique> getCartesTactiques() {
         List<CarteTactique> cartesTactiques = new ArrayList<>();
         for (Carte carte : hand) {
-            if (carte instanceof CarteTactique) cartesTactiques.add((CarteTactique) carte);
+            if (carte.isTactique()) {
+                cartesTactiques.add((CarteTactique) carte);
+            }
         }
         return cartesTactiques;
+    }
+
+    public List<CarteClan> getCartesClan() {
+        List<CarteClan> cartesClan = new ArrayList<>();
+        for (Carte carte : hand) {
+            if (!carte.isTactique()) {
+                cartesClan.add((CarteClan) carte);
+            }
+        }
+        return cartesClan;
     }
 
     public boolean hasCarteTactique() {

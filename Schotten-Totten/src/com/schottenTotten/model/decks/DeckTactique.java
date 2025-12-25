@@ -1,20 +1,18 @@
-package com.schottenTotten.model;
+package com.schottenTotten.model.decks;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.schottenTotten.model.carte.CarteTactique;
+import com.schottenTotten.model.enums.TypeCarteTactique;
 
 public class DeckTactique extends Deck {
-    private List<CarteTactique> defausse;
 
     public DeckTactique() {
-        super(false);
-        this.defausse=new ArrayList<>();
-        initialiserDeck();
+        super();
     }
 
     @Override
-    protected void initialiserDeck() {
+    public void initialiserDeck() {
         // Troupes d'élite
+        cartes.add(new CarteTactique(TypeCarteTactique.JOKER));
         cartes.add(new CarteTactique(TypeCarteTactique.JOKER));
         cartes.add(new CarteTactique(TypeCarteTactique.ESPION));
         cartes.add(new CarteTactique(TypeCarteTactique.PORTE_BOUCLIER));
@@ -28,7 +26,4 @@ public class DeckTactique extends Deck {
         cartes.add(new CarteTactique(TypeCarteTactique.TRAITRE));
     }
 
-    public void defausser(CarteTactique carte) { defausse.add(carte); }
-    public List<CarteTactique> getDefausse() { return new ArrayList<>(defausse); }
-    public int getDefausseSize() { return defausse.size(); }
 }

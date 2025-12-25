@@ -1,5 +1,7 @@
 package com.schottenTotten.model;
 
+import com.schottenTotten.model.carte.Carte;
+
 import java.util.*;
 
 public class Borne {
@@ -22,7 +24,7 @@ public class Borne {
     }
 
     // Getter unifié pour les cartes d'un joueur
-    public List<Carte> getCartes(int joueur) {
+    public List<Carte> getCartesParJoueur(int joueur) {
         if (joueur == 1) return cartesJ1;
         if (joueur == 2) return cartesJ2;
         throw new IllegalArgumentException("Joueur doit être 1 ou 2");
@@ -37,7 +39,7 @@ public class Borne {
     }
 
     public int getNbCartes(int joueur) {
-        return getCartes(joueur).size();
+        return getCartesParJoueur(joueur).size();
     }
 
     public boolean isLocked() {
@@ -81,12 +83,12 @@ public class Borne {
     }
 
     // Méthodes unifiées pour ajouter/retirer des cartes
-    public void addCarte(int joueur, Carte carte) {
-        getCartes(joueur).add(carte);
+    public void addCarteToJoueurBorne(int joueur, Carte carte) {
+        getCartesParJoueur(joueur).add(carte);
         lastPlayer = joueur;
     }
 
     public Carte removeCarte(int joueur, int index) {
-        return getCartes(joueur).remove(index);
+        return getCartesParJoueur(joueur).remove(index);
     }
 }

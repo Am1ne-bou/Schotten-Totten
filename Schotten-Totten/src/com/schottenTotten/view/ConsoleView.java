@@ -3,22 +3,15 @@ package com.schottenTotten.view;
 import java.util.Scanner;
 import java.util.List;
 import com.schottenTotten.model.*;
+import com.schottenTotten.model.carte.Carte;
+import com.schottenTotten.model.carte.CarteClan;
+import com.schottenTotten.model.carte.CarteTactique;
+import com.schottenTotten.model.enums.Couleur;
+
+import static com.schottenTotten.utils.Constants.*;
 
 public class ConsoleView {
     private final Scanner scanner;
-
-    // Codes couleurs ANSI
-    public static final String RESET = "\u001B[0m";
-    public static final String BOLD = "\u001B[1m";
-    public static final String ROUGE = "\u001B[31m";
-    public static final String VERT = "\u001B[32m";
-    public static final String JAUNE = "\u001B[33m";
-    public static final String BLEU = "\u001B[34m";
-    public static final String MAGENTA = "\u001B[35m";
-    public static final String CYAN = "\u001B[36m";
-    public static final String BLANC = "\u001B[37m";
-    public static final String ORANGE = "\u001B[38;5;208m";
-    public static final String GRIS = "\u001B[38;5;242m";
 
     public ConsoleView() {
         this.scanner = new Scanner(System.in);
@@ -36,33 +29,7 @@ public class ConsoleView {
 
     // Mapping couleur
     // Move to color
-    private String getCouleurCode(Couleur couleur) {
-        if (couleur == null) return CYAN;
-        return switch (couleur) {
-            case ROUGE -> ROUGE;
-            case BLEU -> BLEU;
-            case VERT -> VERT;
-            case JAUNE -> JAUNE;
-            case ORANGE -> ORANGE;
-            case VIOLET -> MAGENTA;
-        };
-    }
 
-    private String colorerCarte(Carte carte) {
-        if (carte == null) return GRIS + "[   ]" + RESET;
-        if (carte.getCouleur() == null) {
-            return CYAN + BOLD + "[" + carte.getValeur() + "-" + ((CarteTactique) carte).getType().toString().substring(0, 5) + "]" + RESET;
-        }
-        String couleurCode = getCouleurCode(carte.getCouleur());
-        return couleurCode + BOLD + "[" + carte.getValeur() + "-" + carte.getCouleur().toString().substring(0, 2) + "]" + RESET;
-    }
-
-    private String colorerCartes(List<Carte> cartes) {
-        if (cartes.isEmpty()) return GRIS + "[     ]" + RESET;
-        StringBuilder sb = new StringBuilder();
-        for (Carte carte : cartes) sb.append(colorerCarte(carte)).append(" ");
-        return sb.toString();
-    }
 
     private int lireEntier(int min, int max) {
         // TO DO
@@ -149,14 +116,15 @@ public class ConsoleView {
         return GRIS + "--" + RESET;
     }
 
-    private String formatCartePourBorne(Carte carte) {
+    private String formatCartePourBorne(Carte carte ) {
         if (carte == null) return GRIS + "[  ]" + RESET;
-        if (carte instanceof CarteTactique) {
-            String typeorcolor = (((CarteTactique) carte).getCouleurChoisie() == null) ? ((CarteTactique) carte).getType().toString().substring(1, 1) : ((CarteTactique) carte).getCouleurChoisie().getAbreviation();
-            //String color = (((CarteTactique) carte).getCouleurChoisie() == null) ? CYAN : getCouleurCode(((CarteTactique) carte).getCouleurChoisie());
-            return CYAN + BOLD + "[" + ((CarteTactique) carte).getValeurChoisie() + "-" + typeorcolor + "]" + RESET;
+        if (carte.isTactique()) {
+            CarteTactique carte_tac = (CarteTactique) carte;
+            String typeorcolor = ( carte_tac.getCouleur() == null) ?  carte_tac.getType().toString().substring(1, 1) :  carte_tac.getCouleur().getAbreviation();
+            String color = ( carte_tac.getCouleur() == null) ? CYAN : carte_tac.getCouleur().getCouleurCode(carte_tac.getCouleur());
+            return color + BOLD + "[" +  carte.getValeur() + "-" + typeorcolor + "]" + RESET;
         }
-        String couleurCode = getCouleurCode(carte.getCouleur());
+        String couleurCode = carte.getCouleur().getCouleurCode(carte.getCouleur());
         return couleurCode + BOLD + "[" + carte.getValeur() + carte.getCouleur().toString().charAt(0) + "]" + RESET;
     }
 
@@ -166,7 +134,7 @@ public class ConsoleView {
             for (int b = 0; b < nombreBornes; b++) {
                 if (b == indexcombatdeboue) {
                     Borne borne = plateau.getBorne(b);
-                    List<Carte> cartes = borne.getCartes(joueur);
+                    List<Carte> cartes = borne.getCartesParJoueur(joueur);
                     System.out.print((ligne < cartes.size()) ? " " + formatCartePourBorne(cartes.get(ligne)) + " " : GRIS + " [  ] " + RESET);
                 } else {
                     System.out.print("      ");
@@ -179,7 +147,7 @@ public class ConsoleView {
             System.out.print("    C" + (ligne + 1) + ":    ");
             for (int b = 0; b < nombreBornes; b++) {
                 Borne borne = plateau.getBorne(b);
-                List<Carte> cartes = borne.getCartes(joueur);
+                List<Carte> cartes = borne.getCartesParJoueur(joueur);
                 System.out.print((ligne < cartes.size()) ? " " + formatCartePourBorne(cartes.get(ligne)) + " " : GRIS + " [  ] " + RESET);
             }
             System.out.println();
@@ -254,7 +222,9 @@ public class ConsoleView {
 
         List<Carte> main = joueur.getHand();
         for (int i = 0; i < main.size(); i++) {
-            System.out.print(GRIS + "[" + i + "]" + RESET + colorerCarte(main.get(i)) + "  ");
+            Carte carte = main.get(i);
+            String carteFormatee = (carte.getCouleur() != null) ? carte.getCouleur().colorerCarte(carte) : CYAN;
+            System.out.print(GRIS + "[" + i + "]" + RESET + carteFormatee + "  ");
         }
         System.out.println();
         System.out.println(couleur + BOLD + "  +----------------------------------------------------------------+" + RESET);
@@ -297,8 +267,8 @@ public class ConsoleView {
 
     public void afficherCartesComparees(List<Carte> cartesJ1, List<Carte> cartesJ2, int typeJ1, int typeJ2) {
         System.out.println(GRIS + "  Comparaison:" + RESET);
-        System.out.println(BLEU + "    J1: " + RESET + colorerCartes(cartesJ1) + GRIS + " -> " + getNomCombinaison(typeJ1) + RESET);
-        System.out.println(ROUGE + "    J2: " + RESET + colorerCartes(cartesJ2) + GRIS + " -> " + getNomCombinaison(typeJ2) + RESET);
+        System.out.println(BLEU + "    J1: " + RESET + Couleur.BLEU.colorerCartes(cartesJ1) + GRIS + " -> " + getNomCombinaison(typeJ1) + RESET);
+        System.out.println(ROUGE + "    J2: " + RESET + Couleur.ROUGE.colorerCartes(cartesJ2) + GRIS + " -> " + getNomCombinaison(typeJ2) + RESET);
     }
 
     private String getNomCombinaison(int type) {
@@ -347,9 +317,9 @@ public class ConsoleView {
         return lireEntier(1, 2);
     }
 
-    public Carte AskCarteFromPlayer(Joueur joueur, int index_final) {
-        System.out.print(CYAN + "  > Choisissez une carte (0-" + (index_final - 1) + ") : " + RESET);
-        int index = lireEntier(0, index_final - 1);
+    public Carte AskCarteFromPlayer(Joueur joueur) {
+        System.out.print(CYAN + "  > Choisissez une carte (0-" + (joueur.getHandSize() - 1) + ") : " + RESET);
+        int index = lireEntier(0, joueur.getHandSize() - 1);
         return joueur.getHand().get(index);
     }
 
@@ -360,7 +330,7 @@ public class ConsoleView {
 
     public void afficherCarteJouee(String nomJoueur, Carte carte, int indexBorne) {
         System.out.println();
-        System.out.println(VERT + "  [OK] " + nomJoueur + " joue " + colorerCarte(carte) + VERT + " sur la Borne " + indexBorne + RESET);
+        System.out.println(VERT + "  [OK] " + nomJoueur + " joue " + carte.getCouleur().colorerCarte(carte) + VERT + " sur la Borne " + indexBorne + RESET);
     }
 
     public int demanderTypeCarteAJouer(boolean aCartesClan, boolean peutJouerTactique) {
@@ -399,7 +369,7 @@ public class ConsoleView {
         System.out.println(BLANC + BOLD + "  +-----------------------------------+" + RESET);
         Couleur[] couleurs = Couleur.values();
         for (int i = 0; i < couleurs.length; i++) {
-            String couleurCode = getCouleurCode(couleurs[i]);
+            String couleurCode = couleurs[i].getCouleurCode(couleurs[i]);
             System.out.println(BLANC + "  |  " + couleurCode + i + "." + BLANC + " " + couleurs[i] + "                         |" + RESET);
         }
         System.out.println(BLANC + BOLD + "  +-----------------------------------+" + RESET);

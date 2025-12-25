@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Random;
 import com.schottenTotten.controller.Jeu;
 import com.schottenTotten.model.*;
+import com.schottenTotten.model.carte.CarteClan;
+import com.schottenTotten.model.carte.CarteTactique;
+import com.schottenTotten.model.enums.Couleur;
 
 public class IAAleatoire {
     private static Random rand=new Random();
@@ -22,14 +25,14 @@ public class IAAleatoire {
         return bornesValides.isEmpty() ? 0 : bornesValides.get(rand.nextInt(bornesValides.size()));
     }
 
-    public static Carte choisirCarte(Joueur joueur, List<Carte> cartesClan) {
+    public static CarteClan choisirCarte(Joueur joueur, List<CarteClan> cartesClan) {
         if (cartesClan.isEmpty()) return null;
         return cartesClan.get(rand.nextInt(cartesClan.size()));
     }
 
     // Choisit quel type de pioche (1=clan, 2=tactique)
     public static int choisirTypePioche(boolean clanDispo, boolean tactiqueDispo) {
-        if (clanDispo && tactiqueDispo) return rand.nextBoolean() ? 1 : 2;
+        if (clanDispo && tactiqueDispo) return rand.nextInt(10)<7 ? 1 : 2;
         return clanDispo ? 1 : 2;
     }
 
