@@ -477,6 +477,7 @@ public class Jeu implements IControleurJeu {
             if (!gameEnded) {
                 if (!joueurActuel.isAI()) {
                     view.afficherTransition(getJoueurAdverse().getName());
+                    view.afficherPlateau(plateau, variante.getNombreBornes());
                 }
                 changerJoueurCourant();
             }
