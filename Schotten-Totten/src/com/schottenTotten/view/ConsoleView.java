@@ -289,18 +289,48 @@ public class ConsoleView {
 
     public void afficherFinPartie(int gagnant, String nomGagnant) {
         String couleur = (gagnant == 1) ? BLEU : ROUGE;
+
+        // Calculer la largeur nécessaire pour le nom du gagnant
+        String texteVainqueur = "VAINQUEUR : " + nomGagnant;
+        int largeurMinimale = Math.max(
+                texteVainqueur.length() + 10,  // +10 pour les marges
+                "FIN DE LA PARTIE !".length() + 10
+        );
+
+        // Arrondir à un multiple de 2 pour garder la symétrie
+        int largeur = (largeurMinimale % 2 == 0) ? largeurMinimale : largeurMinimale + 1;
+
+        // Construction du tableau
+        String bordure = "  +" + "=".repeat(largeur) + "+";
+        String ligneVide = "  |" + " ".repeat(largeur) + "|";
+
         System.out.println();
         System.out.println();
-        System.out.println(JAUNE + BOLD + "  +=========================================================+" + RESET);
-        System.out.println(JAUNE + BOLD + "  |                                                         |" + RESET);
-        System.out.println(JAUNE + BOLD + "  |              FIN DE LA PARTIE !                         |" + RESET);
-        System.out.println(JAUNE + BOLD + "  |                                                         |" + RESET);
-        System.out.println(JAUNE + BOLD + "  |    VAINQUEUR : " + couleur + nomGagnant + JAUNE + "                               |" + RESET);
-        System.out.println(JAUNE + BOLD + "  |                                                         |" + RESET);
-        System.out.println(JAUNE + BOLD + "  |         Felicitations !                                 |" + RESET);
-        System.out.println(JAUNE + BOLD + "  |                                                         |" + RESET);
-        System.out.println(JAUNE + BOLD + "  +=========================================================+" + RESET);
+        System.out.println(JAUNE + BOLD + bordure + RESET);
+        System.out.println(JAUNE + BOLD + ligneVide + RESET);
+        System.out.println(JAUNE + BOLD + "  |" + centrer("FIN DE LA PARTIE !", largeur) + "|" + RESET);
+        System.out.println(JAUNE + BOLD + ligneVide + RESET);
+
+        // Ligne du vainqueur avec couleur
+        String ligneVainqueur = centrer(texteVainqueur, largeur);
+        ligneVainqueur = ligneVainqueur.replace(nomGagnant, couleur + nomGagnant + JAUNE);
+        System.out.println(JAUNE + BOLD + "  |" + ligneVainqueur + "|" + RESET);
+
+        System.out.println(JAUNE + BOLD + ligneVide + RESET);
+        System.out.println(JAUNE + BOLD + "  |" + centrer("Félicitations !", largeur) + "|" + RESET);
+        System.out.println(JAUNE + BOLD + ligneVide + RESET);
+        System.out.println(JAUNE + BOLD + bordure + RESET);
         System.out.println();
+    }
+
+    /**
+     * Centre un texte dans une largeur donnée
+     */
+    private String centrer(String texte, int largeur) {
+        int espacesTotal = largeur - texte.length();
+        int espacesGauche = espacesTotal / 2;
+        int espacesDroite = espacesTotal - espacesGauche;
+        return " ".repeat(espacesGauche) + texte + " ".repeat(espacesDroite);
     }
 
     public void afficherScoreFinal(int bornesJ1, int bornesJ2, String nomJ1, String nomJ2) {
